@@ -27,7 +27,7 @@ A lifestyle RPG with time-gated quests, auto-fail penalties, and AI-generated sy
 
 ### 4. Access your app
 Your app will be live at:
-`https://YOUR_USERNAME.github.io/solo-leveling-life/`
+`https://chaotic-space.github.io/Solo-Leveling-Life/`
 
 ### 5. Install as PWA on your phone
 - Open the URL in Chrome on your OnePlus phone
