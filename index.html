@@ -131,7 +131,8 @@ const DEFAULT_STATE = {
   title:"E-Rank Hunter",hp:100,maxHp:100,mp:50,maxMp:50,
   customQuests:[],timerSettings:TIMER_DEFAULTS,timerCompletionsToday:0,
   notificationsEnabled:false,questsSinceLastRandom:0,randomQuestsToday:0,
-  lastFailCheck:0,
+  lastFailCheck:0,recentRandomQuests:[],statHistory:{},questFreqMode:"normal",
+  summonUsedToday:false,
 };
 
 const getTitle=l=>{if(l>=18)return"Shadow Monarch";if(l>=14)return"National Level";if(l>=10)return"S-Rank Hunter";if(l>=6)return"B-Rank Hunter";if(l>=3)return"D-Rank Hunter";return"E-Rank Hunter";};
@@ -173,22 +174,49 @@ const RAND_POOL = {
     {name:"Sunrise Stretch",desc:"5 min full body stretch",xp:15,stat:"AGI",icon:"🌅",flavor:"Prepare your vessel for the day ahead."},
     {name:"Gratitude Moment",desc:"Think of 3 good things",xp:10,stat:"CHA",icon:"🙏",flavor:"Even Hunters need perspective."},
     {name:"Deep Breathing",desc:"Box breathe for 2 minutes",xp:10,stat:"INT",icon:"🌬️",flavor:"Control your breath, control your power."},
+    {name:"Morning Hydration Boost",desc:"Drink 2 glasses of water now",xp:12,stat:"VIT",icon:"💧",flavor:"Hydrate before the day hunts you."},
+    {name:"Cold Face Wash",desc:"Splash cold water on your face",xp:10,stat:"STR",icon:"🚿",flavor:"Shock the system awake."},
+    {name:"Morning Affirmations",desc:"Say 3 power affirmations aloud",xp:10,stat:"CHA",icon:"🗣️",flavor:"Words shape the will of a Hunter."},
+    {name:"5-Minute Journal",desc:"Write today's three intentions",xp:12,stat:"INT",icon:"📝",flavor:"Set the day's course before it sets you."},
+    {name:"Sunlight Exposure",desc:"Stand in sunlight for 5 minutes",xp:12,stat:"VIT",icon:"☀️",flavor:"The light recharges what sleep restores."},
+    {name:"No-Phone Morning",desc:"First 30 min with no screen",xp:20,stat:"INT",icon:"📵",flavor:"Command your mind before the world does."},
+    {name:"Morning Run Prep",desc:"Put on workout gear right now",xp:8,stat:"AGI",icon:"👟",flavor:"The clothes are the first step."},
   ],
   midday:[
     {name:"Power Walk",desc:"Walk briskly for 15 min",xp:20,stat:"AGI",icon:"🚶",flavor:"Movement is the antidote to stagnation."},
     {name:"Desk Push-ups",desc:"10 push-ups right now",xp:12,stat:"STR",icon:"💪",flavor:"No excuses. The floor is always there."},
     {name:"Mindful Eating",desc:"Eat next meal with no phone",xp:15,stat:"INT",icon:"🧘",flavor:"Awareness sharpens all senses."},
+    {name:"Posture Reset",desc:"Stand and realign your spine 2 min",xp:8,stat:"VIT",icon:"🧍",flavor:"A slouched Hunter is a weak Hunter."},
+    {name:"Hydration Sprint",desc:"Drink 2 glasses of water now",xp:10,stat:"VIT",icon:"💧",flavor:"Your cells hunger for this."},
+    {name:"Focus Block",desc:"Work with zero distractions 25 min",xp:25,stat:"INT",icon:"🎯",flavor:"The dungeon requires full concentration."},
+    {name:"Stair Climb",desc:"Take stairs instead of elevator",xp:12,stat:"AGI",icon:"🏃",flavor:"Every step is a stat point earned."},
+    {name:"Stretch Break",desc:"Stand and stretch for 5 minutes",xp:10,stat:"AGI",icon:"🤸",flavor:"Flexibility is speed in disguise."},
+    {name:"Gratitude Text",desc:"Send a kind message to someone",xp:15,stat:"CHA",icon:"💬",flavor:"A true Hunter lifts allies."},
+    {name:"Power Nap Rest",desc:"Close your eyes and rest 10 min",xp:12,stat:"VIT",icon:"😴",flavor:"Recovery is part of the grind."},
   ],
   afternoon:[
     {name:"Shadow Boxing",desc:"2 min of shadow boxing",xp:18,stat:"STR",icon:"🥊",flavor:"Train as if your life depends on it."},
     {name:"Cold Splash",desc:"Splash cold water on face",xp:10,stat:"STR",icon:"💦",flavor:"Shock the system. Stay sharp."},
     {name:"Compliment Quest",desc:"Give someone a genuine compliment",xp:15,stat:"CHA",icon:"💬",flavor:"True strength lifts others up."},
     {name:"Digital Detox",desc:"No phone for 30 minutes",xp:25,stat:"INT",icon:"📵",flavor:"Free yourself from distraction."},
+    {name:"Bodyweight Circuit",desc:"10 squats + 10 push-ups + 10 lunges",xp:22,stat:"STR",icon:"💪",flavor:"The System demands compound effort."},
+    {name:"Nature Break",desc:"Step outside for 10 minutes",xp:12,stat:"AGI",icon:"🌿",flavor:"Even Hunters need fresh air."},
+    {name:"Learning Podcast",desc:"Listen to something educational 20 min",xp:15,stat:"INT",icon:"🎧",flavor:"Knowledge is armor. Equip it."},
+    {name:"Desk Declutter",desc:"Clean your workspace in 5 min",xp:10,stat:"CHA",icon:"🧹",flavor:"A clear space clears the mind."},
+    {name:"Afternoon Hydration",desc:"Drink your 6th glass of water",xp:10,stat:"VIT",icon:"🌊",flavor:"Hydration sustains the long fight."},
+    {name:"Eye Exercise",desc:"Look 20 feet away for 20 seconds",xp:8,stat:"VIT",icon:"👁️",flavor:"Preserve your most vital sensors."},
   ],
   evening:[
     {name:"Reflection",desc:"Write what you accomplished today",xp:15,stat:"INT",icon:"📝",flavor:"A Hunter reviews each battle."},
     {name:"Gratitude Log",desc:"Write 3 things you're grateful for",xp:12,stat:"CHA",icon:"🙏",flavor:"Gratitude marks a true monarch."},
     {name:"Evening Walk",desc:"Short walk to decompress",xp:12,stat:"AGI",icon:"🌙",flavor:"The night air sharpens the mind."},
+    {name:"Meal Prep",desc:"Prepare tomorrow's food or snacks",xp:15,stat:"VIT",icon:"🍱",flavor:"Preparation is half the battle."},
+    {name:"Reading Quest",desc:"Read a real book for 20 minutes",xp:18,stat:"INT",icon:"📚",flavor:"Every page is a level gained."},
+    {name:"Evening Stretch",desc:"10 min full body stretch",xp:14,stat:"AGI",icon:"🤸",flavor:"Release the tension of today's dungeon."},
+    {name:"Social Bond",desc:"Have a meaningful conversation",xp:15,stat:"CHA",icon:"👥",flavor:"Connections forge the strongest guilds."},
+    {name:"Evening Hydration",desc:"Drink your final glasses of water",xp:10,stat:"VIT",icon:"💧",flavor:"Finish the day properly hydrated."},
+    {name:"No Junk Commitment",desc:"Avoid snacking on junk tonight",xp:15,stat:"CHA",icon:"🛡️",flavor:"Discipline at night reveals true rank."},
+    {name:"Tomorrow Planning",desc:"Write 3 goals for tomorrow",xp:14,stat:"INT",icon:"📋",flavor:"The strongest Hunters plan their hunts."},
   ],
   challenge:[
     {name:"Ice Warrior",desc:"30s cold water in shower",xp:50,stat:"STR",icon:"🧊",flavor:"Pain forges strength."},
@@ -196,19 +224,74 @@ const RAND_POOL = {
     {name:"No Complaints",desc:"Zero complaints rest of today",xp:55,stat:"CHA",icon:"🤐",flavor:"Master your tongue, master your fate."},
     {name:"Media Blackout",desc:"No social media rest of today",xp:65,stat:"INT",icon:"📴",flavor:"Reclaim your mind from the void."},
     {name:"Wall Sit Trial",desc:"Hold wall sit 60 seconds",xp:40,stat:"STR",icon:"🧱",flavor:"Your legs beg mercy. Deny them."},
-  ]
+    {name:"Burpee Blitz",desc:"20 burpees without stopping",xp:45,stat:"STR",icon:"🔥",flavor:"This is what separates ranks."},
+    {name:"Fasting Quest",desc:"No snacking for the next 4 hours",xp:50,stat:"VIT",icon:"⚡",flavor:"Hunger is a weak enemy. Defeat it."},
+    {name:"Public Boldness",desc:"Do something outside your comfort zone",xp:70,stat:"CHA",icon:"🦁",flavor:"The Shadow Monarch feared nothing."},
+    {name:"Maximum Focus",desc:"90 min deep work, zero distractions",xp:75,stat:"INT",icon:"🧠",flavor:"Your mind is the ultimate weapon."},
+    {name:"Run Gauntlet",desc:"Run for 20 minutes nonstop",xp:55,stat:"AGI",icon:"🏃",flavor:"Speed is survival. Run."},
+    {name:"Plank Endurance",desc:"Hold plank for 90 seconds",xp:40,stat:"STR",icon:"🧱",flavor:"Endure. That is the Hunter's way."},
+    {name:"Monk Mode Hour",desc:"1 hour: no phone, no music, just work",xp:80,stat:"INT",icon:"🔕",flavor:"Silence is the dungeon where minds level up."},
+  ],
+  night:[
+    {name:"Wind Down Breathing",desc:"4-7-8 breathing for 5 minutes",xp:12,stat:"INT",icon:"🌙",flavor:"Breathe out the day. Breathe in tomorrow."},
+    {name:"Tomorrow's Victory",desc:"Write tomorrow's #1 priority",xp:10,stat:"INT",icon:"📋",flavor:"The night before the hunt matters."},
+    {name:"Gratitude Reflection",desc:"Recall today's one best moment",xp:10,stat:"CHA",icon:"✨",flavor:"Even flawed days hold treasure."},
+    {name:"Screen Sunset",desc:"Put your phone away for the night",xp:15,stat:"INT",icon:"📵",flavor:"The screen dims. The Hunter rests."},
+    {name:"Body Scan Meditation",desc:"5 min mindful body relaxation",xp:14,stat:"VIT",icon:"🧘",flavor:"Recover fully. Tomorrow demands it."},
+    {name:"Water Before Sleep",desc:"Drink a glass of water now",xp:8,stat:"VIT",icon:"💧",flavor:"Hydrate the vessel before it rests."},
+    {name:"Forgiveness Quest",desc:"Let go of one frustration from today",xp:15,stat:"CHA",icon:"🕊️",flavor:"A clear mind levels faster."},
+    {name:"Outfit Prep",desc:"Prepare clothes for tomorrow",xp:8,stat:"CHA",icon:"👔",flavor:"The prepared Hunter never scrambles."},
+  ],
+  recovery:[
+    {name:"One Deep Breath",desc:"Take one long, slow deep breath",xp:5,stat:"INT",icon:"🌬️",flavor:"Even the weakest spark can ignite."},
+    {name:"Hydration Reset",desc:"Just drink one glass of water",xp:5,stat:"VIT",icon:"💧",flavor:"Start over. One glass at a time."},
+    {name:"Step Outside",desc:"Go outside for just 2 minutes",xp:8,stat:"AGI",icon:"🚪",flavor:"The door is not your enemy."},
+    {name:"Tiny Victory",desc:"Do 5 jumping jacks right now",xp:8,stat:"STR",icon:"⚡",flavor:"Five. That is all. Five is enough."},
+    {name:"Kind Word",desc:"Say something encouraging to yourself",xp:8,stat:"CHA",icon:"💙",flavor:"A Hunter who cannot hear encouragement cannot give it."},
+    {name:"Rest Quest",desc:"Lie down and close your eyes 5 min",xp:10,stat:"VIT",icon:"😴",flavor:"Rest is not surrender. Rest is strategy."},
+  ],
 };
 
 function pickRandomQuest(state) {
   const h = NOW_H();
-  const tk = h<9?"morning":h<13?"midday":h<18?"afternoon":"evening";
-  const isChal = state.level>=3 && Math.random()<0.25;
-  const pool = isChal ? RAND_POOL.challenge : RAND_POOL[tk];
-  const pick = pool[Math.floor(Math.random()*pool.length)];
+  const failCount = (state.failedToday||[]).length;
+  const recent = state.recentRandomQuests || [];
+
+  // Compute neglected stat from last 3 days of statHistory
+  const sh = state.statHistory || {};
+  const today = TDK();
+  const recent3 = Object.entries(sh).filter(([d])=>d<today).sort(([a],[b])=>b.localeCompare(a)).slice(0,3);
+  const statTotals = {STR:0,VIT:0,AGI:0,INT:0,CHA:0};
+  recent3.forEach(([,day])=>SN.forEach(s=>{statTotals[s]+=(day[s]||0);}));
+  const neglected = Object.entries(statTotals).sort((a,b)=>a[1]-b[1])[0][0];
   const weak = Object.entries(state.stats).sort((a,b)=>a[1]-b[1])[0][0];
+
+  // Determine time bucket
+  let tk;
+  if(failCount>2 && Math.random()<0.4) { tk="recovery"; }
+  else if(h<9) { tk="morning"; }
+  else if(h<13) { tk="midday"; }
+  else if(h<18) { tk="afternoon"; }
+  else if(h<22) { tk="evening"; }
+  else { tk="night"; }
+
+  // Dynamic challenge chance based on streak
+  const chalChance = state.streak>7 ? 0.45 : state.streak>4 ? 0.30 : 0.20;
+  if(tk!=="recovery" && state.level>=3 && Math.random()<chalChance) tk="challenge";
+
+  // Filter out recently seen quests; if all exhausted, reset for this bucket
+  let pool = (RAND_POOL[tk]||RAND_POOL.morning).filter(q=>!recent.includes(q.name));
+  if(pool.length===0) pool = RAND_POOL[tk]||RAND_POOL.morning;
+
+  // Boost stat targeting if a stat has been neglected 2+ of last 3 days
+  const neglectDays = recent3.filter(([,d])=>!d[neglected]||d[neglected]===0).length;
+  const targetChance = neglectDays>=2 ? 0.55 : 0.30;
+
+  const pick = pool[Math.floor(Math.random()*pool.length)];
+  const targetStat = Math.random()<targetChance ? neglected : (Math.random()<0.3 ? weak : pick.stat);
   return {
     ...pick,
-    stat: Math.random()<0.3 ? weak : pick.stat,
+    stat: targetStat,
     xp: Math.round(pick.xp * (1 + state.level*0.03)),
     id: `rq_${Date.now()}`,
     isRandom: true,
@@ -216,23 +299,29 @@ function pickRandomQuest(state) {
 }
 
 async function generateAIQuest(state) {
+  const apiKey = localStorage.getItem("sl_api_key")||"";
+  if(!apiKey) return pickRandomQuest(state);
+
   const h = NOW_H();
   const tc = h<6?"late night":h<9?"early morning":h<12?"morning":h<14?"midday":h<17?"afternoon":h<20?"evening":"night";
   const top = Object.entries(state.stats).sort((a,b)=>b[1]-a[1])[0];
   const weak = Object.entries(state.stats).sort((a,b)=>a[1]-b[1])[0];
   const failCount = (state.failedToday||[]).length;
+  const recentNames = (state.recentRandomQuests||[]).slice(-10);
 
   const prompt = `You are the System from Solo Leveling. Generate a quest:
 Level ${state.level}, Title: ${state.title}. STR:${state.stats.STR} VIT:${state.stats.VIT} AGI:${state.stats.AGI} INT:${state.stats.INT} CHA:${state.stats.CHA}. Strongest:${top[0]}, Weakest:${weak[0]}. Time:${tc}. Done today:${state.completedToday.length}. Failed today:${failCount}. Streak:${state.streak}.
-${failCount>2 ? "Hunter is struggling today. Give an easier motivational quest." : ""}
-${state.streak>5 ? "Hunter has a strong streak. Give a worthy challenge." : ""}
-Quest must be completable today. Consider time. XP 10-80. Target weak stat sometimes.
+${failCount>2?"Hunter is struggling today. Give an easier motivational quest.":""}
+${state.streak>5?"Hunter has a strong streak. Give a worthy challenge.":""}
+${recentNames.length>0?`Do not repeat these recent quests: ${recentNames.join(", ")}.`:""}
+Quest must be completable today. Consider time of day. XP 10-80. Target weak stat sometimes.
 Respond ONLY JSON: {"name":"max 25 chars","desc":"max 50 chars","xp":number,"stat":"STR|VIT|AGI|INT|CHA","icon":"emoji","flavor":"system msg max 80 chars"}`;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:250,messages:[{role:"user",content:prompt}]}),
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
+      body: JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:250,messages:[{role:"user",content:prompt}]}),
     });
     if (!res.ok) throw new Error();
     const data = await res.json();
@@ -273,11 +362,16 @@ function App() {
             s.streak = d<=1 ? s.streak+1 : 0;
             s.completedToday=[]; s.failedToday=[]; s.todayDate=TDK();
             s.timerCompletionsToday=0; s.questsSinceLastRandom=0; s.randomQuestsToday=0; s.lastFailCheck=0;
+            s.summonUsedToday=false;
             s.hp=Math.min(s.hp+20,s.maxHp); s.mp=Math.min(s.mp+10,s.maxMp);
           }
           if(!s.timerSettings)s.timerSettings=TIMER_DEFAULTS;
           if(!s.customQuests)s.customQuests=[];
           if(!s.failedToday)s.failedToday=[];
+          if(!s.recentRandomQuests)s.recentRandomQuests=[];
+          if(!s.statHistory)s.statHistory={};
+          if(!s.questFreqMode)s.questFreqMode="normal";
+          if(s.summonUsedToday===undefined)s.summonUsedToday=false;
           setState(s);
         } else {
           setState({...DEFAULT_STATE,todayDate:TDK()});
@@ -354,6 +448,12 @@ function App() {
 
   const apXp=useCallback((p,xp,st)=>{
     const n={...p,xp:p.xp+xp,totalXp:p.totalXp+xp,stats:{...p.stats,[st]:p.stats[st]+1}};
+    const td=TDK();const sh={...(p.statHistory||{})};
+    if(!sh[td])sh[td]={STR:0,VIT:0,AGI:0,INT:0,CHA:0};
+    sh[td]={...sh[td],[st]:(sh[td][st]||0)+1};
+    const cutoff=new Date(Date.now()-7*864e5).toISOString().split("T")[0];
+    Object.keys(sh).forEach(d=>{if(d<cutoff)delete sh[d];});
+    n.statHistory=sh;
     let nl=p.level,nx=n.xp,pts=p.statPoints,did=false;
     while(nl<LEVEL_XP.length-1&&nx>=LEVEL_XP[nl]){nx-=LEVEL_XP[nl];nl++;pts+=3;did=true;}
     n.level=nl;n.xp=nx;n.statPoints=pts;n.title=getTitle(nl);
@@ -365,7 +465,9 @@ function App() {
 
   const maybeRandom=useCallback(async(ns)=>{
     const cnt=(ns.questsSinceLastRandom||0)+1;
-    if(cnt>=3 && (ns.randomQuestsToday||0)<5 && Math.random()<0.5){
+    const threshold=ns.questFreqMode==="aggressive"?2:3;
+    const maxDaily=ns.questFreqMode==="aggressive"?10:6;
+    if(cnt>=threshold && (ns.randomQuestsToday||0)<maxDaily && Math.random()<0.5){
       setTimeout(async()=>{setRandomPop(await generateAIQuest(ns));setRerollUsed(false);},1000);
       return {questsSinceLastRandom:0,randomQuestsToday:(ns.randomQuestsToday||0)+1};
     }
@@ -392,14 +494,30 @@ function App() {
 
   const acceptRQ=useCallback(()=>{
     if(!randomPop)return;
-    setState(p=>({...p,customQuests:[...p.customQuests,{id:randomPop.id,name:randomPop.name,desc:randomPop.desc,xp:randomPop.xp,stat:randomPop.stat,icon:randomPop.icon,isRandom:true}]}));
+    setState(p=>({...p,
+      customQuests:[...p.customQuests,{id:randomPop.id,name:randomPop.name,desc:randomPop.desc,xp:randomPop.xp,stat:randomPop.stat,icon:randomPop.icon,isRandom:true}],
+      recentRandomQuests:[...(p.recentRandomQuests||[]),randomPop.name].slice(-30),
+    }));
     showT("System Quest accepted!","stat");setRandomPop(null);
   },[randomPop,showT]);
+
+  const declineRQ=useCallback(()=>{
+    if(!randomPop)return;
+    setState(p=>({...p,recentRandomQuests:[...(p.recentRandomQuests||[]),randomPop.name].slice(-30)}));
+    setRandomPop(null);
+  },[randomPop]);
 
   const rerollRQ=useCallback(async()=>{
     if(rerollUsed||rerolling)return;setRerolling(true);
     setRandomPop(await generateAIQuest(state));setRerollUsed(true);setRerolling(false);
   },[rerollUsed,rerolling,state]);
+
+  const summonQuest=useCallback(async()=>{
+    if(!state||state.summonUsedToday)return;
+    setState(p=>({...p,summonUsedToday:true,randomQuestsToday:(p.randomQuestsToday||0)+1}));
+    const q=await generateAIQuest(state);
+    setRandomPop(q);setRerollUsed(false);
+  },[state]);
 
   const addCQ=useCallback(q=>{setState(p=>({...p,customQuests:[...p.customQuests,q]}));setShowCM(false);showT("Quest created!","stat");},[showT]);
   const delCQ=useCallback(id=>{setState(p=>({...p,customQuests:p.customQuests.filter(q=>q.id!==id),completedToday:p.completedToday.filter(x=>x!==id)}));},[]);
@@ -472,7 +590,7 @@ function App() {
         React.createElement("button",{onClick:acceptRQ,style:{flex:2,padding:"11px 0",borderRadius:8,border:"none",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✓ Accept"),
         !rerollUsed ?
           React.createElement("button",{onClick:rerollRQ,disabled:rerolling,style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(168,85,247,.3)",background:"rgba(168,85,247,.08)",color:"#c4b5fd",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},rerolling?"...":"🎲 Reroll") :
-          React.createElement("button",{onClick:()=>setRandomPop(null),style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✕ Decline"),
+          React.createElement("button",{onClick:declineRQ,style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✕ Decline"),
       ),
       React.createElement("p",{style:{fontSize:10,color:"#64748b",textAlign:"center",marginTop:6,fontFamily:"'Orbitron'"}},rerollUsed?"No rerolls left":"1 reroll remaining"),
     )),
@@ -501,7 +619,7 @@ function App() {
 
     // Tabs
     React.createElement("div",{style:{display:"flex",flexShrink:0,background:"rgba(10,10,18,.95)",borderBottom:"1px solid rgba(99,102,241,.1)"}},
-      [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["stats","📊 Stats"]].map(([k,l])=>
+      [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["stats","📊 Stats"],["settings","⚙️ Set"]].map(([k,l])=>
         React.createElement("button",{key:k,onClick:()=>setTab(k),style:{flex:1,padding:"10px 0",border:"none",background:"transparent",color:tab===k?"#818cf8":"#64748b",fontFamily:"'Rajdhani'",fontSize:12,fontWeight:600,cursor:"pointer",borderBottom:tab===k?"2px solid #818cf8":"2px solid transparent",position:"relative"}},
           l, k==="stats"&&state.statPoints>0&&React.createElement("span",{style:{position:"absolute",top:3,right:"15%",background:"#ef4444",color:"#fff",fontSize:8,fontFamily:"'Orbitron'",width:14,height:14,borderRadius:7,display:"inline-flex",alignItems:"center",justifyContent:"center"}},state.statPoints)
         )
@@ -510,10 +628,11 @@ function App() {
 
     // Content
     React.createElement("div",{style:{flex:1,overflowY:"auto",padding:"10px 12px",paddingBottom:40}},
-      tab==="quests" && React.createElement(QuestsTab,{active:activeQ,done:doneQ,failed:failQ,upcoming:upQ,cq:state.customQuests,completed:state.completedToday,h,onDo:doQuest,onAdd:()=>setShowCM(true),onDel:delCQ}),
+      tab==="quests" && React.createElement(QuestsTab,{active:activeQ,done:doneQ,failed:failQ,upcoming:upQ,cq:state.customQuests,completed:state.completedToday,h,onDo:doQuest,onAdd:()=>setShowCM(true),onDel:delCQ,onSummon:summonQuest,summonUsed:state.summonUsedToday}),
       tab==="workout" && React.createElement(WorkoutTab,{qs:WORKOUT_QUESTS,dn:state.completedToday,onDo:doQuest,lv:state.level,rk:wRank,sRk:setWRank}),
       tab==="timers" && React.createElement(TimersTab,{ts:state.timerSettings,onTog:togTmr,onUpd:updTmr,nOn:state.notificationsEnabled,onEN:enNotif,cnt:state.timerCompletionsToday||0,onTst:tstTmr}),
       tab==="stats" && React.createElement(StatsTab,{state,onAl:allocS,onRst:resetG}),
+      tab==="settings" && React.createElement(SettingsTab,{freqMode:state.questFreqMode,onFreqMode:m=>setState(p=>({...p,questFreqMode:m}))}),
     ),
   );
 }
@@ -574,11 +693,14 @@ function QuestCard({q,status,h,onDo}) {
 }
 
 /* ═══════════════════ QUESTS TAB ═══════════════════ */
-function QuestsTab({active,done,failed,upcoming,cq,completed,h,onDo,onAdd,onDel}) {
+function QuestsTab({active,done,failed,upcoming,cq,completed,h,onDo,onAdd,onDel,onSummon,summonUsed}) {
   return React.createElement("div",null,
     React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}},
       React.createElement("p",{style:secS},"⚔️ Active Now"),
-      React.createElement("button",{onClick:onAdd,style:{padding:"4px 12px",borderRadius:8,border:"1px solid rgba(129,140,248,.3)",background:"rgba(99,102,241,.12)",color:"#a5b4fc",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"+ Custom"),
+      React.createElement("div",{style:{display:"flex",gap:6}},
+        React.createElement("button",{onClick:onSummon,disabled:summonUsed,title:summonUsed?"Summon used today":"Summon a System Quest",style:{padding:"4px 10px",borderRadius:8,border:"1px solid rgba(168,85,247,.3)",background:summonUsed?"rgba(100,116,139,.1)":"rgba(168,85,247,.12)",color:summonUsed?"#475569":"#c4b5fd",fontSize:12,fontWeight:700,cursor:summonUsed?"default":"pointer",fontFamily:"'Rajdhani'",opacity:summonUsed?.5:1}},summonUsed?"⚔️ Summoned":"⚔️ Summon"),
+        React.createElement("button",{onClick:onAdd,style:{padding:"4px 12px",borderRadius:8,border:"1px solid rgba(129,140,248,.3)",background:"rgba(99,102,241,.12)",color:"#a5b4fc",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"+ Custom"),
+      ),
     ),
     active.length===0 ? React.createElement("p",{style:{fontSize:13,color:"#64748b",padding:"12px 0",textAlign:"center"}},"No active quests right now. Check back soon!") :
       active.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"active",h,onDo})),
@@ -732,6 +854,52 @@ function CQModal({onAdd,onClose}) {
         React.createElement("button",{onClick:onClose,style:{...bgS,flex:1}},"Cancel"),
       ),
     )
+  );
+}
+
+/* ═══════════════════ SETTINGS TAB ═══════════════════ */
+function SettingsTab({freqMode,onFreqMode}) {
+  const [key,setKey]=React.useState(()=>localStorage.getItem("sl_api_key")||"");
+  const [saved,setSaved]=React.useState(false);
+  const saveKey=()=>{localStorage.setItem("sl_api_key",key.trim());setSaved(true);setTimeout(()=>setSaved(false),2000);};
+  return React.createElement("div",null,
+    React.createElement("p",{style:secS},"⚙️ Settings"),
+
+    React.createElement("div",{style:{background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.15)",borderRadius:12,padding:"14px 14px",marginBottom:14}},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#c7d2fe",marginBottom:6}},"🤖 AI Quest Generation"),
+      React.createElement("p",{style:{fontSize:11,color:"#64748b",marginBottom:10,lineHeight:1.5}},"Paste your Anthropic API key to unlock AI-generated System Quests. Get one at console.anthropic.com (separate from your Claude subscription)."),
+      React.createElement("label",{style:mlS},"API Key"),
+      React.createElement("input",{type:"password",value:key,onChange:e=>setKey(e.target.value),placeholder:"sk-ant-...",style:{...miS,marginBottom:8,fontFamily:"monospace",fontSize:12}}),
+      React.createElement("button",{onClick:saveKey,style:{...bpS,width:"100%",fontSize:13,padding:"9px 0",background:saved?"linear-gradient(135deg,#16a34a,#22c55e)":"linear-gradient(135deg,#6366f1,#818cf8)"}},saved?"✓ Saved!":"Save Key"),
+      key&&React.createElement("p",{style:{fontSize:10,color:"#22c55e",marginTop:6,textAlign:"center",fontFamily:"'Orbitron'"}},"Key stored locally on this device only."),
+    ),
+
+    React.createElement("div",{style:{background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.15)",borderRadius:12,padding:"14px 14px",marginBottom:14}},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#c7d2fe",marginBottom:10}},"⚡ Random Quest Frequency"),
+      [["normal","Normal","Trigger after 3 quests • max 6/day"],["aggressive","Aggressive","Trigger after 2 quests • max 10/day"]].map(([val,label,desc])=>
+        React.createElement("button",{key:val,onClick:()=>onFreqMode(val),style:{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 12px",marginBottom:6,borderRadius:10,border:`1px solid ${freqMode===val?"rgba(129,140,248,.5)":"rgba(99,102,241,.15)"}`,background:freqMode===val?"rgba(99,102,241,.18)":"rgba(15,23,42,.4)",cursor:"pointer",textAlign:"left",WebkitAppearance:"none",color:"#e2e8f0",fontFamily:"'Rajdhani'"}},
+          React.createElement("div",{style:{width:14,height:14,borderRadius:7,border:`2px solid ${freqMode===val?"#818cf8":"#475569"}`,background:freqMode===val?"#818cf8":"transparent",flexShrink:0}}),
+          React.createElement("div",null,
+            React.createElement("p",{style:{fontSize:14,fontWeight:700,color:freqMode===val?"#c7d2fe":"#94a3b8"}}),
+            React.createElement("p",{style:{fontSize:14,fontWeight:700,color:freqMode===val?"#c7d2fe":"#94a3b8"}},label),
+            React.createElement("p",{style:{fontSize:11,color:"#64748b"}},desc),
+          ),
+        )
+      ),
+    ),
+
+    React.createElement("div",{style:{background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.15)",borderRadius:12,padding:"14px 14px"}},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#c7d2fe",marginBottom:6}},"🎲 How Random Quests Work"),
+      [
+        "35% chance on app open (once per day)",
+        "Triggered after completing quests (based on frequency mode)",
+        "⚔️ Summon button: manual trigger once per day",
+        "Quests target your weakest/neglected stats",
+        "Night quests appear after 10 PM",
+        "Recovery quests appear when you're struggling",
+        "No repeats — recent quests are filtered out",
+      ].map((t,i)=>React.createElement("p",{key:i,style:{fontSize:12,color:"#64748b",marginBottom:4,paddingLeft:8,borderLeft:"2px solid rgba(99,102,241,.2)"}},t)),
+    ),
   );
 }
 
