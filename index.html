@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a12"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="manifest" href="./manifest.json"/>
+<link rel="apple-touch-icon" href="./icons/icon-192.png"/>
+<title>Solo Leveling Life</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body,#root{height:100%;overflow:hidden}
+body{font-family:'Rajdhani',sans-serif;background:#0a0a12;color:#e2e8f0;overscroll-behavior:none}
+input,select,textarea{font-family:'Rajdhani',sans-serif;-webkit-user-select:text;user-select:text}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#334;border-radius:4px}
+@keyframes pulse-glow{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes levelFlash{0%{opacity:0;transform:scale(.5)}30%{opacity:1;transform:scale(1.1)}100%{opacity:0;transform:scale(2)}}
+@keyframes slideIn{from{transform:translateY(-30px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes popIn{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(168,85,247,.3)}50%{box-shadow:0 0 40px rgba(168,85,247,.6)}}
+@keyframes tickPulse{0%,100%{color:#f87171}50%{color:#fca5a5}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef} = React;
+
+/* ═══════════════════ SERVICE WORKER ═══════════════════ */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+/* ═══════════════════ CONSTANTS ═══════════════════ */
+const LEVEL_XP=[0,100,250,500,850,1300,1900,2600,3500,4600,5900,7500,9400,11600,14200,17200,20700,24700,29300,34500,40500];
+const SN=["STR","VIT","AGI","INT","CHA"];
+const SL={STR:"Strength",VIT:"Vitality",AGI:"Agility",INT:"Intelligence",CHA:"Charisma"};
+const SI={STR:"⚔️",VIT:"❤️",AGI:"⚡",INT:"🧠",CHA:"✨"};
+const RC={E:"#7a7a7a",D:"#4ade80",C:"#60a5fa",B:"#c084fc",A:"#f59e0b",S:"#ef4444"};
+const RG={E:"rgba(122,122,122,.3)",D:"rgba(74,222,128,.4)",C:"rgba(96,165,250,.4)",B:"rgba(192,132,252,.5)",A:"rgba(245,158,11,.5)",S:"rgba(239,68,68,.6)"};
+const CI=["⭐","🎯","📚","🏃","🧘","🎨","💻","🎵","🌿","💊","🧪","🔧","📝","🏠","🛒","🎮","🧩","🏊","🚴","🥊"];
+const TDK=()=>new Date().toISOString().split("T")[0];
+const NOW_H=()=>new Date().getHours();
+const NOW_M=()=>new Date().getMinutes();
+
+/*
+  TIME-GATED QUEST SYSTEM
+  Each quest has: from (hour available), until (hour expires), failPenalty (HP lost on expire)
+  Status: "upcoming" | "active" | "completed" | "failed"
+*/
+const DAILY_QUESTS = [
+  // MORNING BLOCK (5am–12pm)
+  { id:"wake", name:"Wake Up Early", desc:"Get up before 7 AM", xp:20, stat:"INT", icon:"⏰", from:5, until:7, failPenalty:5, tip:"Set your alarm tonight" },
+  { id:"bed", name:"Make Your Bed", desc:"First small victory", xp:8, stat:"CHA", icon:"🛏️", from:5, until:10, failPenalty:0 },
+  { id:"brkf", name:"Eat Breakfast", desc:"Fuel your body early", xp:12, stat:"VIT", icon:"🍳", from:6, until:11, failPenalty:10, tip:"Skipping breakfast drains VIT" },
+  { id:"mw1", name:"Morning Water", desc:"Drink water on empty stomach", xp:10, stat:"VIT", icon:"💧", from:5, until:9, failPenalty:5 },
+  { id:"mstr", name:"Morning Stretch", desc:"5 min stretch routine", xp:12, stat:"AGI", icon:"🤸", from:5, until:10, failPenalty:3 },
+
+  // MIDDAY BLOCK (10am–3pm)
+  { id:"w2", name:"Hydration Check", desc:"Drink your 4th glass", xp:10, stat:"VIT", icon:"💧", from:10, until:15, failPenalty:3 },
+  { id:"lunch", name:"Healthy Lunch", desc:"Eat a balanced meal", xp:15, stat:"VIT", icon:"🥗", from:11, until:14, failPenalty:8, tip:"Your body needs fuel for the afternoon" },
+  { id:"walk1", name:"Midday Walk", desc:"Walk for 10 minutes", xp:15, stat:"AGI", icon:"🚶", from:11, until:15, failPenalty:3 },
+  { id:"post", name:"Posture Check", desc:"Sit/stand up straight for 5 min", xp:8, stat:"VIT", icon:"🧍", from:10, until:16, failPenalty:0 },
+
+  // AFTERNOON BLOCK (2pm–7pm)
+  { id:"w3", name:"Afternoon Hydration", desc:"Keep drinking water", xp:10, stat:"VIT", icon:"🌊", from:14, until:19, failPenalty:3 },
+  { id:"snack", name:"Healthy Snack", desc:"Fruit or nuts, not junk", xp:10, stat:"VIT", icon:"🍎", from:14, until:18, failPenalty:5 },
+  { id:"eyes", name:"Eye Rest", desc:"Look away from screen 5 min", xp:8, stat:"VIT", icon:"👁️", from:13, until:19, failPenalty:3 },
+  { id:"move", name:"Get Moving", desc:"Any physical activity 10 min", xp:15, stat:"AGI", icon:"🏃", from:14, until:20, failPenalty:5 },
+  { id:"learn", name:"Learn Something", desc:"Read or watch something educational", xp:15, stat:"INT", icon:"📖", from:10, until:21, failPenalty:0 },
+
+  // EVENING BLOCK (5pm–midnight)
+  { id:"dinner", name:"Proper Dinner", desc:"Cook or eat a real meal", xp:15, stat:"VIT", icon:"🍽️", from:17, until:21, failPenalty:8 },
+  { id:"w4", name:"Evening Hydration", desc:"8th glass of water", xp:12, stat:"VIT", icon:"💧", from:17, until:22, failPenalty:3 },
+  { id:"clean", name:"Clean Space", desc:"Tidy up your area", xp:10, stat:"CHA", icon:"🧹", from:17, until:23, failPenalty:0 },
+  { id:"jrnl", name:"Journal Entry", desc:"Write about your day", xp:15, stat:"INT", icon:"✏️", from:18, until:24, failPenalty:0 },
+  { id:"social", name:"Talk to Someone", desc:"Have a real conversation", xp:15, stat:"CHA", icon:"🗣️", from:8, until:22, failPenalty:0 },
+
+  // ALL DAY
+  { id:"nojunk", name:"No Junk Food", desc:"Avoid all processed food today", xp:30, stat:"CHA", icon:"🛡️", from:0, until:24, failPenalty:0, tip:"Complete at end of day if you held strong" },
+  { id:"steps", name:"10K Steps", desc:"Walk 10,000 steps total", xp:40, stat:"AGI", icon:"👟", from:0, until:23, failPenalty:5 },
+  { id:"cold", name:"Cold Shower", desc:"Take a cold shower", xp:25, stat:"STR", icon:"🥶", from:5, until:23, failPenalty:0 },
+
+  // NIGHT (8pm–midnight)
+  { id:"noscreen", name:"Screen Curfew", desc:"No screens 30 min before bed", xp:20, stat:"INT", icon:"📴", from:21, until:24, failPenalty:5, tip:"Blue light disrupts recovery" },
+  { id:"sleep", name:"Sleep on Time", desc:"In bed before midnight", xp:25, stat:"INT", icon:"🌙", from:21, until:24, failPenalty:10, tip:"Recovery is critical for leveling up" },
+];
+
+const WORKOUT_QUESTS = [
+  { id:"we1", name:"10 Push-ups", desc:"Basic push-ups", xp:15, stat:"STR", icon:"💪", rank:"E" },
+  { id:"we2", name:"20 Squats", desc:"Bodyweight squats", xp:15, stat:"STR", icon:"🦵", rank:"E" },
+  { id:"we3", name:"30s Plank", desc:"Hold a plank", xp:10, stat:"VIT", icon:"🧱", rank:"E" },
+  { id:"we4", name:"10 Sit-ups", desc:"Basic sit-ups", xp:10, stat:"STR", icon:"🔥", rank:"E" },
+  { id:"we5", name:"1km Run", desc:"Run or jog 1km", xp:20, stat:"AGI", icon:"🏃", rank:"E" },
+  { id:"wd1", name:"25 Push-ups", desc:"Push-up set", xp:25, stat:"STR", icon:"💪", rank:"D", rl:3 },
+  { id:"wd2", name:"50 Squats", desc:"Deep squats", xp:25, stat:"STR", icon:"🦵", rank:"D", rl:3 },
+  { id:"wd3", name:"1min Plank", desc:"Hold longer", xp:20, stat:"VIT", icon:"🧱", rank:"D", rl:3 },
+  { id:"wd4", name:"3km Run", desc:"Run 3km", xp:35, stat:"AGI", icon:"🏃", rank:"D", rl:3 },
+  { id:"wd5", name:"20 Burpees", desc:"Full burpees", xp:30, stat:"STR", icon:"🔥", rank:"D", rl:3 },
+  { id:"wc1", name:"50 Push-ups", desc:"Grind it out", xp:40, stat:"STR", icon:"💪", rank:"C", rl:6 },
+  { id:"wc2", name:"100 Squats", desc:"Century squats", xp:40, stat:"STR", icon:"🦵", rank:"C", rl:6 },
+  { id:"wc3", name:"2min Plank", desc:"Iron core", xp:35, stat:"VIT", icon:"🧱", rank:"C", rl:6 },
+  { id:"wc4", name:"5km Run", desc:"Distance run", xp:50, stat:"AGI", icon:"🏃", rank:"C", rl:6 },
+  { id:"wb1", name:"100 Push-ups", desc:"Shadow monarch push-ups", xp:60, stat:"STR", icon:"💪", rank:"B", rl:10 },
+  { id:"wb2", name:"200 Squats", desc:"Titan squats", xp:60, stat:"STR", icon:"🦵", rank:"B", rl:10 },
+  { id:"wb3", name:"5min Plank", desc:"Unbreakable", xp:55, stat:"VIT", icon:"🧱", rank:"B", rl:10 },
+  { id:"wb4", name:"10km Run", desc:"Long distance", xp:80, stat:"AGI", icon:"🏃", rank:"B", rl:10 },
+  { id:"wa1", name:"Full Body HIIT", desc:"30min high intensity", xp:100, stat:"STR", icon:"⚔️", rank:"A", rl:14 },
+  { id:"ws1", name:"Monarch's Trial", desc:"100 push-ups, 100 squats, 100 sit-ups, 10km", xp:200, stat:"STR", icon:"👑", rank:"S", rl:18 },
+];
+
+const TIMER_DEFAULTS = [
+  { id:"t_w", name:"Hydrate", desc:"Drink water, Hunter", icon:"💧", intervalMin:45, xp:8, stat:"VIT", enabled:true },
+  { id:"t_s", name:"Stretch", desc:"Move your body", icon:"🤸", intervalMin:60, xp:10, stat:"AGI", enabled:true },
+  { id:"t_e", name:"Eye Rest", desc:"20/20/20 rule", icon:"👁️", intervalMin:30, xp:5, stat:"VIT", enabled:true },
+  { id:"t_p", name:"Posture", desc:"Straighten up", icon:"🧍", intervalMin:40, xp:5, stat:"VIT", enabled:true },
+  { id:"t_b", name:"Breathe", desc:"5 deep breaths", icon:"🌬️", intervalMin:90, xp:8, stat:"INT", enabled:true },
+];
+
+const DEFAULT_STATE = {
+  level:1,xp:0,totalXp:0,stats:{STR:1,VIT:1,AGI:1,INT:1,CHA:1},
+  statPoints:0,streak:0,completedToday:[],failedToday:[],todayDate:TDK(),
+  title:"E-Rank Hunter",hp:100,maxHp:100,mp:50,maxMp:50,
+  customQuests:[],timerSettings:TIMER_DEFAULTS,timerCompletionsToday:0,
+  notificationsEnabled:false,questsSinceLastRandom:0,randomQuestsToday:0,
+  lastFailCheck:0,
+};
+
+const getTitle=l=>{if(l>=18)return"Shadow Monarch";if(l>=14)return"National Level";if(l>=10)return"S-Rank Hunter";if(l>=6)return"B-Rank Hunter";if(l>=3)return"D-Rank Hunter";return"E-Rank Hunter";};
+
+/* ═══════════════════ QUEST STATUS LOGIC ═══════════════════ */
+function getQuestStatus(q, h, completed, failed) {
+  if (completed.includes(q.id)) return "completed";
+  if (failed.includes(q.id)) return "failed";
+  if (h < q.from) return "upcoming";
+  if (h >= q.until) return "expired";
+  return "active";
+}
+
+function getTimeLabel(q, h) {
+  if (h < q.from) return `Unlocks at ${fmtH(q.from)}`;
+  if (h >= q.until) return "Expired";
+  const left = q.until - h;
+  if (left <= 1) return "Expires soon!";
+  if (left <= 2) return `${left}h left`;
+  return `Until ${fmtH(q.until)}`;
+}
+
+function fmtH(h) {
+  if (h === 0 || h === 24) return "12 AM";
+  if (h === 12) return "12 PM";
+  return h < 12 ? `${h} AM` : `${h-12} PM`;
+}
+
+function getUrgencyColor(q, h) {
+  const left = q.until - h;
+  if (left <= 1) return "#ef4444";
+  if (left <= 2) return "#f59e0b";
+  return "#64748b";
+}
+
+/* ═══════════════════ RANDOM QUEST POOL ═══════════════════ */
+const RAND_POOL = {
+  morning:[
+    {name:"Sunrise Stretch",desc:"5 min full body stretch",xp:15,stat:"AGI",icon:"🌅",flavor:"Prepare your vessel for the day ahead."},
+    {name:"Gratitude Moment",desc:"Think of 3 good things",xp:10,stat:"CHA",icon:"🙏",flavor:"Even Hunters need perspective."},
+    {name:"Deep Breathing",desc:"Box breathe for 2 minutes",xp:10,stat:"INT",icon:"🌬️",flavor:"Control your breath, control your power."},
+  ],
+  midday:[
+    {name:"Power Walk",desc:"Walk briskly for 15 min",xp:20,stat:"AGI",icon:"🚶",flavor:"Movement is the antidote to stagnation."},
+    {name:"Desk Push-ups",desc:"10 push-ups right now",xp:12,stat:"STR",icon:"💪",flavor:"No excuses. The floor is always there."},
+    {name:"Mindful Eating",desc:"Eat next meal with no phone",xp:15,stat:"INT",icon:"🧘",flavor:"Awareness sharpens all senses."},
+  ],
+  afternoon:[
+    {name:"Shadow Boxing",desc:"2 min of shadow boxing",xp:18,stat:"STR",icon:"🥊",flavor:"Train as if your life depends on it."},
+    {name:"Cold Splash",desc:"Splash cold water on face",xp:10,stat:"STR",icon:"💦",flavor:"Shock the system. Stay sharp."},
+    {name:"Compliment Quest",desc:"Give someone a genuine compliment",xp:15,stat:"CHA",icon:"💬",flavor:"True strength lifts others up."},
+    {name:"Digital Detox",desc:"No phone for 30 minutes",xp:25,stat:"INT",icon:"📵",flavor:"Free yourself from distraction."},
+  ],
+  evening:[
+    {name:"Reflection",desc:"Write what you accomplished today",xp:15,stat:"INT",icon:"📝",flavor:"A Hunter reviews each battle."},
+    {name:"Gratitude Log",desc:"Write 3 things you're grateful for",xp:12,stat:"CHA",icon:"🙏",flavor:"Gratitude marks a true monarch."},
+    {name:"Evening Walk",desc:"Short walk to decompress",xp:12,stat:"AGI",icon:"🌙",flavor:"The night air sharpens the mind."},
+  ],
+  challenge:[
+    {name:"Ice Warrior",desc:"30s cold water in shower",xp:50,stat:"STR",icon:"🧊",flavor:"Pain forges strength."},
+    {name:"Talk to Stranger",desc:"Start a new conversation",xp:60,stat:"CHA",icon:"🗣️",flavor:"A true Hunter fears nothing."},
+    {name:"No Complaints",desc:"Zero complaints rest of today",xp:55,stat:"CHA",icon:"🤐",flavor:"Master your tongue, master your fate."},
+    {name:"Media Blackout",desc:"No social media rest of today",xp:65,stat:"INT",icon:"📴",flavor:"Reclaim your mind from the void."},
+    {name:"Wall Sit Trial",desc:"Hold wall sit 60 seconds",xp:40,stat:"STR",icon:"🧱",flavor:"Your legs beg mercy. Deny them."},
+  ]
+};
+
+function pickRandomQuest(state) {
+  const h = NOW_H();
+  const tk = h<9?"morning":h<13?"midday":h<18?"afternoon":"evening";
+  const isChal = state.level>=3 && Math.random()<0.25;
+  const pool = isChal ? RAND_POOL.challenge : RAND_POOL[tk];
+  const pick = pool[Math.floor(Math.random()*pool.length)];
+  const weak = Object.entries(state.stats).sort((a,b)=>a[1]-b[1])[0][0];
+  return {
+    ...pick,
+    stat: Math.random()<0.3 ? weak : pick.stat,
+    xp: Math.round(pick.xp * (1 + state.level*0.03)),
+    id: `rq_${Date.now()}`,
+    isRandom: true,
+  };
+}
+
+async function generateAIQuest(state) {
+  const h = NOW_H();
+  const tc = h<6?"late night":h<9?"early morning":h<12?"morning":h<14?"midday":h<17?"afternoon":h<20?"evening":"night";
+  const top = Object.entries(state.stats).sort((a,b)=>b[1]-a[1])[0];
+  const weak = Object.entries(state.stats).sort((a,b)=>a[1]-b[1])[0];
+  const failCount = (state.failedToday||[]).length;
+
+  const prompt = `You are the System from Solo Leveling. Generate a quest:
+Level ${state.level}, Title: ${state.title}. STR:${state.stats.STR} VIT:${state.stats.VIT} AGI:${state.stats.AGI} INT:${state.stats.INT} CHA:${state.stats.CHA}. Strongest:${top[0]}, Weakest:${weak[0]}. Time:${tc}. Done today:${state.completedToday.length}. Failed today:${failCount}. Streak:${state.streak}.
+${failCount>2 ? "Hunter is struggling today. Give an easier motivational quest." : ""}
+${state.streak>5 ? "Hunter has a strong streak. Give a worthy challenge." : ""}
+Quest must be completable today. Consider time. XP 10-80. Target weak stat sometimes.
+Respond ONLY JSON: {"name":"max 25 chars","desc":"max 50 chars","xp":number,"stat":"STR|VIT|AGI|INT|CHA","icon":"emoji","flavor":"system msg max 80 chars"}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:250,messages:[{role:"user",content:prompt}]}),
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const text = data.content?.filter(b=>b.type==="text").map(b=>b.text).join("").trim();
+    const q = JSON.parse(text.replace(/```json\s*|```\s*/g,"").trim());
+    return { id:`rq_${Date.now()}`, name:String(q.name).slice(0,30), desc:String(q.desc||"").slice(0,60), xp:Math.min(Math.max(+q.xp||15,5),120), stat:SN.includes(q.stat)?q.stat:"STR", icon:q.icon||"🎲", flavor:String(q.flavor||"").slice(0,100), isRandom:true };
+  } catch { return pickRandomQuest(state); }
+}
+
+/* ═══════════════════ MAIN APP ═══════════════════ */
+function App() {
+  const [state,setState] = useState(null);
+  const [loading,setLoading] = useState(true);
+  const [tab,setTab] = useState("quests");
+  const [toast,setToast] = useState(null);
+  const [xpAnim,setXpAnim] = useState(false);
+  const [levelUp,setLevelUp] = useState(false);
+  const [wRank,setWRank] = useState("E");
+  const [showCM,setShowCM] = useState(false);
+  const [timerPop,setTimerPop] = useState(null);
+  const [randomPop,setRandomPop] = useState(null);
+  const [rerollUsed,setRerollUsed] = useState(false);
+  const [rerolling,setRerolling] = useState(false);
+  const [hour,setHour] = useState(NOW_H());
+  const [failToast,setFailToast] = useState(null);
+  const tRef = useRef(null);
+  const tiRefs = useRef({});
+
+  // Load
+  useEffect(()=>{
+    (async()=>{
+      try {
+        const raw = localStorage.getItem("sl-v7");
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s.todayDate !== TDK()) {
+            const d = Math.floor((Date.now()-new Date(s.todayDate).getTime())/864e5);
+            s.streak = d<=1 ? s.streak+1 : 0;
+            s.completedToday=[]; s.failedToday=[]; s.todayDate=TDK();
+            s.timerCompletionsToday=0; s.questsSinceLastRandom=0; s.randomQuestsToday=0; s.lastFailCheck=0;
+            s.hp=Math.min(s.hp+20,s.maxHp); s.mp=Math.min(s.mp+10,s.maxMp);
+          }
+          if(!s.timerSettings)s.timerSettings=TIMER_DEFAULTS;
+          if(!s.customQuests)s.customQuests=[];
+          if(!s.failedToday)s.failedToday=[];
+          setState(s);
+        } else {
+          setState({...DEFAULT_STATE,todayDate:TDK()});
+        }
+      } catch { setState({...DEFAULT_STATE,todayDate:TDK()}); }
+      setLoading(false);
+    })();
+  },[]);
+
+  // Save
+  useEffect(()=>{
+    if(state&&!loading) localStorage.setItem("sl-v7",JSON.stringify(state));
+  },[state,loading]);
+
+  // Clock tick — check for expired quests every minute
+  useEffect(()=>{
+    const iv = setInterval(()=>{
+      setHour(NOW_H());
+    }, 30000); // every 30s
+    return ()=>clearInterval(iv);
+  },[]);
+
+  // Auto-fail expired quests
+  useEffect(()=>{
+    if(!state||loading) return;
+    const h = NOW_H();
+    if(h === state.lastFailCheck) return;
+    let hpLoss = 0;
+    const newFailed = [];
+    DAILY_QUESTS.forEach(q=>{
+      if(h >= q.until && !state.completedToday.includes(q.id) && !state.failedToday.includes(q.id) && q.failPenalty > 0) {
+        newFailed.push(q.id);
+        hpLoss += q.failPenalty;
+      }
+    });
+    if(newFailed.length > 0) {
+      setState(p=>({
+        ...p,
+        failedToday: [...p.failedToday, ...newFailed],
+        hp: Math.max(p.hp - hpLoss, 1),
+        lastFailCheck: h,
+      }));
+      setFailToast(`${newFailed.length} quest${newFailed.length>1?"s":""} expired! -${hpLoss} HP`);
+      setTimeout(()=>setFailToast(null), 3000);
+    } else {
+      setState(p=>({...p, lastFailCheck:h}));
+    }
+  },[hour, state?.completedToday, state?.failedToday, loading]);
+
+  // Timer intervals
+  useEffect(()=>{
+    if(!state||loading) return;
+    Object.values(tiRefs.current).forEach(clearInterval);
+    tiRefs.current={};
+    state.timerSettings.filter(t=>t.enabled).forEach(t=>{
+      tiRefs.current[t.id]=setInterval(()=>{
+        if("Notification"in window && Notification.permission==="granted") try{new Notification(`⚔️ ${t.name}`,{body:t.desc,tag:t.name,renotify:true});}catch{}
+        setTimerPop({...t});
+      }, t.intervalMin*60*1000);
+    });
+    return ()=>Object.values(tiRefs.current).forEach(clearInterval);
+  },[state?.timerSettings,loading]);
+
+  // Random quest on open
+  useEffect(()=>{
+    if(!state||loading) return;
+    if((state.randomQuestsToday||0)===0 && Math.random()<0.35) {
+      const tm=setTimeout(async()=>{setRandomPop(await generateAIQuest(state));setRerollUsed(false);},2500);
+      return ()=>clearTimeout(tm);
+    }
+  },[loading]);
+
+  const showT=useCallback((m,t="xp")=>{if(tRef.current)clearTimeout(tRef.current);setToast({m,t});tRef.current=setTimeout(()=>setToast(null),2200);},[]);
+
+  const apXp=useCallback((p,xp,st)=>{
+    const n={...p,xp:p.xp+xp,totalXp:p.totalXp+xp,stats:{...p.stats,[st]:p.stats[st]+1}};
+    let nl=p.level,nx=n.xp,pts=p.statPoints,did=false;
+    while(nl<LEVEL_XP.length-1&&nx>=LEVEL_XP[nl]){nx-=LEVEL_XP[nl];nl++;pts+=3;did=true;}
+    n.level=nl;n.xp=nx;n.statPoints=pts;n.title=getTitle(nl);
+    n.maxHp=100+(nl-1)*15+(n.stats.VIT-1)*5;n.hp=Math.min(p.hp+5,n.maxHp);
+    n.maxMp=50+(nl-1)*8+(n.stats.INT-1)*3;n.mp=Math.min(p.mp+3,n.maxMp);
+    if(did){setTimeout(()=>setLevelUp(true),300);setTimeout(()=>setLevelUp(false),2800);}
+    return n;
+  },[]);
+
+  const maybeRandom=useCallback(async(ns)=>{
+    const cnt=(ns.questsSinceLastRandom||0)+1;
+    if(cnt>=3 && (ns.randomQuestsToday||0)<5 && Math.random()<0.5){
+      setTimeout(async()=>{setRandomPop(await generateAIQuest(ns));setRerollUsed(false);},1000);
+      return {questsSinceLastRandom:0,randomQuestsToday:(ns.randomQuestsToday||0)+1};
+    }
+    return {questsSinceLastRandom:cnt};
+  },[]);
+
+  const doQuest=useCallback(async(q)=>{
+    let ns;
+    setState(p=>{
+      if(p.completedToday.includes(q.id))return p;
+      const n=apXp(p,q.xp,q.stat);
+      n.completedToday=[...p.completedToday,q.id];
+      ns=n; return n;
+    });
+    setXpAnim(true);setTimeout(()=>setXpAnim(false),600);
+    showT(`+${q.xp} XP • +1 ${q.stat}`);
+    if(ns){const ru=await maybeRandom(ns);setState(p=>({...p,...ru}));}
+  },[apXp,showT,maybeRandom]);
+
+  const doTimer=useCallback(t=>{
+    setState(p=>{const n=apXp(p,t.xp,t.stat);n.timerCompletionsToday=(p.timerCompletionsToday||0)+1;return n;});
+    setXpAnim(true);setTimeout(()=>setXpAnim(false),600);showT(`+${t.xp} XP • +1 ${t.stat}`);setTimerPop(null);
+  },[apXp,showT]);
+
+  const acceptRQ=useCallback(()=>{
+    if(!randomPop)return;
+    setState(p=>({...p,customQuests:[...p.customQuests,{id:randomPop.id,name:randomPop.name,desc:randomPop.desc,xp:randomPop.xp,stat:randomPop.stat,icon:randomPop.icon,isRandom:true}]}));
+    showT("System Quest accepted!","stat");setRandomPop(null);
+  },[randomPop,showT]);
+
+  const rerollRQ=useCallback(async()=>{
+    if(rerollUsed||rerolling)return;setRerolling(true);
+    setRandomPop(await generateAIQuest(state));setRerollUsed(true);setRerolling(false);
+  },[rerollUsed,rerolling,state]);
+
+  const addCQ=useCallback(q=>{setState(p=>({...p,customQuests:[...p.customQuests,q]}));setShowCM(false);showT("Quest created!","stat");},[showT]);
+  const delCQ=useCallback(id=>{setState(p=>({...p,customQuests:p.customQuests.filter(q=>q.id!==id),completedToday:p.completedToday.filter(x=>x!==id)}));},[]);
+  const togTmr=useCallback(id=>{setState(p=>({...p,timerSettings:p.timerSettings.map(t=>t.id===id?{...t,enabled:!t.enabled}:t)}));},[]);
+  const updTmr=useCallback((id,m)=>{setState(p=>({...p,timerSettings:p.timerSettings.map(t=>t.id===id?{...t,intervalMin:m}:t)}));},[]);
+  const enNotif=useCallback(async()=>{if(!("Notification"in window))return;const ok=await Notification.requestPermission()==="granted";setState(p=>({...p,notificationsEnabled:ok}));showT(ok?"Notifications ON!":"Blocked",ok?"stat":"warn");},[showT]);
+  const tstTmr=useCallback(t=>{if("Notification"in window&&Notification.permission==="granted")try{new Notification(`⚔️ ${t.name}`,{body:t.desc});}catch{}setTimerPop({...t});},[]);
+  const allocS=useCallback(st=>{setState(p=>{if(p.statPoints<=0)return p;const n={...p,stats:{...p.stats,[st]:p.stats[st]+1},statPoints:p.statPoints-1};if(st==="VIT"){n.maxHp=100+(p.level-1)*15+(n.stats.VIT-1)*5;n.hp=Math.min(p.hp+5,n.maxHp);}if(st==="INT"){n.maxMp=50+(p.level-1)*8+(n.stats.INT-1)*3;n.mp=Math.min(p.mp+3,n.maxMp);}return n;});showT(`+1 ${SL[st]}`,"stat");},[showT]);
+  const resetG=useCallback(()=>{if(confirm("Reset all progress?")){const f={...DEFAULT_STATE,todayDate:TDK()};setState(f);localStorage.setItem("sl-v7",JSON.stringify(f));showT("Reset","warn");}},[showT]);
+
+  if(loading||!state) return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0a0a12",position:"relative"}},
+    React.createElement("div",{style:{position:"absolute",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle,rgba(99,102,241,.3),transparent)",animation:"pulse-glow 2s infinite"}}),
+    React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:28,color:"#818cf8",letterSpacing:12,zIndex:1}},"A R I S E")
+  );
+
+  const xpN=LEVEL_XP[Math.min(state.level,LEVEL_XP.length-1)]||999999;
+  const h=hour;
+  const activeQ=DAILY_QUESTS.filter(q=>getQuestStatus(q,h,state.completedToday,state.failedToday)==="active");
+  const doneQ=DAILY_QUESTS.filter(q=>getQuestStatus(q,h,state.completedToday,state.failedToday)==="completed");
+  const failQ=DAILY_QUESTS.filter(q=>["failed","expired"].includes(getQuestStatus(q,h,state.completedToday,state.failedToday)));
+  const upQ=DAILY_QUESTS.filter(q=>getQuestStatus(q,h,state.completedToday,state.failedToday)==="upcoming");
+
+  return React.createElement("div",{style:{minHeight:"100vh",background:"linear-gradient(175deg,#0a0a12,#0d0f1a 40%,#111327)",color:"#e2e8f0",fontFamily:"'Rajdhani',sans-serif",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column"}},
+
+    // Level Up
+    levelUp && React.createElement("div",{style:ov},
+      React.createElement("div",{style:{textAlign:"center",position:"relative",padding:40}},
+        React.createElement("div",{style:{position:"absolute",top:"50%",left:"50%",width:300,height:300,borderRadius:"50%",transform:"translate(-50%,-50%)",background:"radial-gradient(circle,rgba(99,102,241,.4),transparent 70%)",animation:"levelFlash 2.5s ease forwards"}}),
+        React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:14,letterSpacing:8,color:"#818cf8",position:"relative",zIndex:1}},"LEVEL UP"),
+        React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:72,fontWeight:900,color:"#e2e8f0",lineHeight:1,position:"relative",zIndex:1,textShadow:"0 0 40px rgba(99,102,241,.6)"}},state.level),
+        React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:18,color:"#c7d2fe",marginTop:8,position:"relative",zIndex:1}},state.title),
+        React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:12,color:"#a5b4fc",marginTop:12,position:"relative",zIndex:1}},"+3 Stat Points"),
+      )
+    ),
+
+    // Toast
+    toast && React.createElement("div",{style:{...toastS,...(toast.t==="warn"?{background:"linear-gradient(90deg,rgba(239,68,68,.9),rgba(248,113,113,.9))"}:toast.t==="stat"?{background:"linear-gradient(90deg,rgba(34,197,94,.9),rgba(74,222,128,.9))"}:{})}},toast.m),
+    failToast && React.createElement("div",{style:{...toastS,background:"linear-gradient(90deg,rgba(220,38,38,.95),rgba(185,28,28,.95))",top:50}},failToast),
+
+    // Timer popup
+    timerPop && !randomPop && React.createElement("div",{style:ov},React.createElement("div",{style:popS},
+      React.createElement("div",{style:{fontSize:44,marginBottom:8}},timerPop.icon),
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:20,color:"#c7d2fe",marginBottom:4}},timerPop.name),
+      React.createElement("p",{style:{fontSize:14,color:"#94a3b8",marginBottom:12}},timerPop.desc),
+      React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:13,color:"#818cf8",marginBottom:16}},`+${timerPop.xp} XP • +1 ${timerPop.stat}`),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("button",{onClick:()=>doTimer(timerPop),style:bpS},"✓ Done"),
+        React.createElement("button",{onClick:()=>setTimerPop(null),style:bgS},"Skip"),
+      )
+    )),
+
+    // Random quest encounter
+    randomPop && React.createElement("div",{style:ov},React.createElement("div",{style:{textAlign:"center",padding:"24px 20px",borderRadius:16,background:"linear-gradient(160deg,#1a0a2e,#0f1a3e)",border:"1px solid rgba(168,85,247,.35)",width:"90%",maxWidth:360,animation:"popIn .4s ease,glowPulse 2s infinite",position:"relative",overflow:"hidden"}},
+      React.createElement("div",{style:{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,.2),transparent 70%)",animation:"pulse-glow 2s infinite"}}),
+      React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:10,letterSpacing:4,color:"#a855f7",marginBottom:4,position:"relative",zIndex:1}},"⚔️ SYSTEM NOTIFICATION ⚔️"),
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:22,color:"#e2e8f0",marginBottom:8,position:"relative",zIndex:1,textShadow:"0 0 20px rgba(168,85,247,.5)"}},"Emergency Quest"),
+      randomPop.flavor && React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:12,color:"#c4b5fd",fontStyle:"italic",marginBottom:14,lineHeight:1.4,position:"relative",zIndex:1}},`『 ${randomPop.flavor} 』`),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,background:"rgba(168,85,247,.08)",border:"1px solid rgba(168,85,247,.2)",marginBottom:8,textAlign:"left",position:"relative",zIndex:1}},
+        React.createElement("span",{style:{fontSize:36}},randomPop.icon),
+        React.createElement("div",{style:{flex:1}},
+          React.createElement("p",{style:{fontSize:18,fontWeight:700,color:"#e2e8f0"}},randomPop.name),
+          React.createElement("p",{style:{fontSize:13,color:"#94a3b8"}},randomPop.desc),
+        ),
+      ),
+      React.createElement("div",{style:{display:"flex",gap:8,marginTop:4,marginBottom:12,justifyContent:"center"}},
+        React.createElement("span",{style:{fontSize:13,fontFamily:"'Orbitron'",color:"#a855f7",fontWeight:700,background:"rgba(168,85,247,.1)",padding:"3px 10px",borderRadius:6}},`+${randomPop.xp} XP`),
+        React.createElement("span",{style:{fontSize:12,fontFamily:"'Orbitron'",color:"#22c55e",background:"rgba(34,197,94,.08)",padding:"3px 10px",borderRadius:6}},`+1 ${randomPop.stat}`),
+      ),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("button",{onClick:acceptRQ,style:{flex:2,padding:"11px 0",borderRadius:8,border:"none",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✓ Accept"),
+        !rerollUsed ?
+          React.createElement("button",{onClick:rerollRQ,disabled:rerolling,style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(168,85,247,.3)",background:"rgba(168,85,247,.08)",color:"#c4b5fd",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},rerolling?"...":"🎲 Reroll") :
+          React.createElement("button",{onClick:()=>setRandomPop(null),style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✕ Decline"),
+      ),
+      React.createElement("p",{style:{fontSize:10,color:"#64748b",textAlign:"center",marginTop:6,fontFamily:"'Orbitron'"}},rerollUsed?"No rerolls left":"1 reroll remaining"),
+    )),
+
+    showCM && React.createElement(CQModal,{onAdd:addCQ,onClose:()=>setShowCM(false)}),
+
+    // Header
+    React.createElement("div",{style:{padding:"16px 16px 10px",background:"linear-gradient(180deg,rgba(99,102,241,.08),transparent)",borderBottom:"1px solid rgba(99,102,241,.15)",flexShrink:0}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}},
+        React.createElement("div",null,
+          React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:10,color:"#818cf8",letterSpacing:3,textTransform:"uppercase"}},state.title),
+          React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:24,fontWeight:900,lineHeight:1}},`LV. ${state.level}`),
+        ),
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:4,background:"rgba(251,146,60,.1)",border:"1px solid rgba(251,146,60,.25)",borderRadius:8,padding:"3px 8px"}},
+          React.createElement("span",{style:{fontSize:14}},"🔥"),
+          React.createElement("span",{style:{fontFamily:"'Orbitron'",fontSize:16,fontWeight:700,color:"#fb923c"}},state.streak),
+        ),
+      ),
+      React.createElement(Bar,{l:"XP",v:state.xp,mx:xpN,t:"xp",g:xpAnim}),
+      React.createElement(Bar,{l:"HP",v:state.hp,mx:state.maxHp,t:"hp"}),
+      React.createElement(Bar,{l:"MP",v:state.mp,mx:state.maxMp,t:"mp"}),
+      React.createElement("p",{style:{textAlign:"center",fontSize:10,color:"#64748b",marginTop:6,fontFamily:"'Orbitron'"}},
+        `${doneQ.length}/${DAILY_QUESTS.length} done • ${failQ.length} failed • ${fmtH(h)} now`
+      ),
+    ),
+
+    // Tabs
+    React.createElement("div",{style:{display:"flex",flexShrink:0,background:"rgba(10,10,18,.95)",borderBottom:"1px solid rgba(99,102,241,.1)"}},
+      [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["stats","📊 Stats"]].map(([k,l])=>
+        React.createElement("button",{key:k,onClick:()=>setTab(k),style:{flex:1,padding:"10px 0",border:"none",background:"transparent",color:tab===k?"#818cf8":"#64748b",fontFamily:"'Rajdhani'",fontSize:12,fontWeight:600,cursor:"pointer",borderBottom:tab===k?"2px solid #818cf8":"2px solid transparent",position:"relative"}},
+          l, k==="stats"&&state.statPoints>0&&React.createElement("span",{style:{position:"absolute",top:3,right:"15%",background:"#ef4444",color:"#fff",fontSize:8,fontFamily:"'Orbitron'",width:14,height:14,borderRadius:7,display:"inline-flex",alignItems:"center",justifyContent:"center"}},state.statPoints)
+        )
+      )
+    ),
+
+    // Content
+    React.createElement("div",{style:{flex:1,overflowY:"auto",padding:"10px 12px",paddingBottom:40}},
+      tab==="quests" && React.createElement(QuestsTab,{active:activeQ,done:doneQ,failed:failQ,upcoming:upQ,cq:state.customQuests,completed:state.completedToday,h,onDo:doQuest,onAdd:()=>setShowCM(true),onDel:delCQ}),
+      tab==="workout" && React.createElement(WorkoutTab,{qs:WORKOUT_QUESTS,dn:state.completedToday,onDo:doQuest,lv:state.level,rk:wRank,sRk:setWRank}),
+      tab==="timers" && React.createElement(TimersTab,{ts:state.timerSettings,onTog:togTmr,onUpd:updTmr,nOn:state.notificationsEnabled,onEN:enNotif,cnt:state.timerCompletionsToday||0,onTst:tstTmr}),
+      tab==="stats" && React.createElement(StatsTab,{state,onAl:allocS,onRst:resetG}),
+    ),
+  );
+}
+
+/* ═══════════════════ BAR ═══════════════════ */
+function Bar({l,v,mx,t,g}) {
+  const p=Math.min((v/mx)*100,100);
+  const bgs={xp:"linear-gradient(90deg,#6366f1,#818cf8,#a5b4fc)",hp:"linear-gradient(90deg,#dc2626,#ef4444,#f87171)",mp:"linear-gradient(90deg,#2563eb,#3b82f6,#60a5fa)"};
+  return React.createElement("div",{style:{marginBottom:4}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:9,fontFamily:"'Orbitron'",color:"#94a3b8",marginBottom:1}},React.createElement("span",null,l),React.createElement("span",null,`${v}/${mx}`)),
+    React.createElement("div",{style:{height:7,borderRadius:4,background:"rgba(30,41,59,.8)",overflow:"hidden"}},
+      React.createElement("div",{style:{height:"100%",borderRadius:4,transition:"width .5s,filter .3s",background:bgs[t],width:`${p}%`,...(g?{filter:"brightness(1.8)"}:{})}})
+    )
+  );
+}
+
+/* ═══════════════════ QUEST CARD ═══════════════════ */
+function QuestCard({q,status,h,onDo}) {
+  const isDone = status==="completed";
+  const isFailed = status==="failed" || status==="expired";
+  const isUpcoming = status==="upcoming";
+  const isLocked = q.rl && false; // for workout
+  const timeColor = isFailed ? "#ef4444" : isUpcoming ? "#64748b" : getUrgencyColor(q,h);
+  const timeLbl = isFailed ? "Failed" : isUpcoming ? `Unlocks ${fmtH(q.from)}` : isDone ? "Done" : getTimeLabel(q,h);
+
+  return React.createElement("button",{
+    onClick:()=>!isDone&&!isFailed&&!isUpcoming&&onDo(q),
+    disabled:isDone||isFailed||isUpcoming,
+    style:{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",marginBottom:6,borderRadius:10,
+      background:isFailed?"rgba(239,68,68,.05)":isDone?"rgba(34,197,94,.05)":"rgba(30,41,59,.35)",
+      border:`1px solid ${isFailed?"rgba(239,68,68,.2)":isDone?"rgba(34,197,94,.2)":q.isRandom?"rgba(168,85,247,.25)":"rgba(99,102,241,.1)"}`,
+      cursor:isDone||isFailed||isUpcoming?"default":"pointer",textAlign:"left",
+      opacity:isFailed?.4:isUpcoming?.35:isDone?.5:1,
+      WebkitAppearance:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Rajdhani'",
+      borderLeft:q.isRandom?"3px solid #a855f7":undefined,
+    }
+  },
+    React.createElement("span",{style:{fontSize:22,width:32,textAlign:"center",flexShrink:0}},isFailed?"💀":isUpcoming?"🔒":q.icon),
+    React.createElement("div",{style:{flex:1,minWidth:0}},
+      React.createElement("p",{style:{fontSize:14,fontWeight:700,lineHeight:1.2}},
+        q.name,
+        q.isRandom && React.createElement("span",{style:{color:"#a855f7",fontSize:9,fontFamily:"Orbitron"}}," [SYS]"),
+      ),
+      React.createElement("p",{style:{fontSize:11,color:"#94a3b8",lineHeight:1.2}},q.desc),
+      React.createElement("p",{style:{fontSize:10,fontFamily:"'Orbitron'",color:timeColor,marginTop:2}},
+        isFailed && q.failPenalty>0 ? `${timeLbl} (-${q.failPenalty} HP)` : timeLbl
+      ),
+    ),
+    React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1,flexShrink:0}},
+      isDone ? React.createElement("span",{style:{fontSize:20,color:"#22c55e",fontWeight:900}},"✓") :
+      isFailed ? React.createElement("span",{style:{fontSize:10,color:"#ef4444",fontFamily:"'Orbitron'"}},"FAILED") :
+      !isUpcoming && React.createElement(React.Fragment,null,
+        React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700}},`+${q.xp}`),
+        React.createElement("span",{style:{fontSize:9,color:"#94a3b8",fontFamily:"'Orbitron'"}},q.stat),
+      )
+    ),
+  );
+}
+
+/* ═══════════════════ QUESTS TAB ═══════════════════ */
+function QuestsTab({active,done,failed,upcoming,cq,completed,h,onDo,onAdd,onDel}) {
+  return React.createElement("div",null,
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}},
+      React.createElement("p",{style:secS},"⚔️ Active Now"),
+      React.createElement("button",{onClick:onAdd,style:{padding:"4px 12px",borderRadius:8,border:"1px solid rgba(129,140,248,.3)",background:"rgba(99,102,241,.12)",color:"#a5b4fc",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"+ Custom"),
+    ),
+    active.length===0 ? React.createElement("p",{style:{fontSize:13,color:"#64748b",padding:"12px 0",textAlign:"center"}},"No active quests right now. Check back soon!") :
+      active.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"active",h,onDo})),
+
+    cq.length>0 && React.createElement(React.Fragment,null,
+      React.createElement("p",{style:{...secS,marginTop:14}},"🛠️ Custom & System Quests"),
+      cq.map(q=>React.createElement("div",{key:q.id,style:{position:"relative"}},
+        React.createElement("button",{
+          onClick:()=>!completed.includes(q.id)&&onDo(q),
+          style:{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",marginBottom:6,borderRadius:10,
+            background:completed.includes(q.id)?"rgba(34,197,94,.05)":"rgba(30,41,59,.35)",
+            border:`1px solid ${q.isRandom?"rgba(168,85,247,.25)":"rgba(99,102,241,.1)"}`,borderLeft:q.isRandom?"3px solid #a855f7":undefined,
+            cursor:completed.includes(q.id)?"default":"pointer",textAlign:"left",opacity:completed.includes(q.id)?.5:1,
+            WebkitAppearance:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Rajdhani'"}},
+          React.createElement("span",{style:{fontSize:22,width:32,textAlign:"center"}},q.icon),
+          React.createElement("div",{style:{flex:1}},
+            React.createElement("p",{style:{fontSize:14,fontWeight:700}},q.name,q.isRandom&&React.createElement("span",{style:{color:"#a855f7",fontSize:9,fontFamily:"Orbitron"}}," [SYS]")),
+            React.createElement("p",{style:{fontSize:11,color:"#94a3b8"}},q.desc),
+          ),
+          completed.includes(q.id) ? React.createElement("span",{style:{fontSize:20,color:"#22c55e"}},"✓") :
+            React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700}},`+${q.xp}`),
+        ),
+        React.createElement("button",{onClick:()=>onDel(q.id),style:{position:"absolute",top:6,right:6,width:20,height:20,borderRadius:5,border:"none",background:"rgba(239,68,68,.2)",color:"#f87171",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}},"✕"),
+      ))
+    ),
+
+    done.length>0 && React.createElement(React.Fragment,null,
+      React.createElement("p",{style:{...secS,marginTop:14}},`✅ Completed (${done.length})`),
+      done.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"completed",h,onDo})),
+    ),
+
+    failed.length>0 && React.createElement(React.Fragment,null,
+      React.createElement("p",{style:{...secS,marginTop:14}},`💀 Failed (${failed.length})`),
+      failed.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"failed",h,onDo})),
+    ),
+
+    upcoming.length>0 && React.createElement(React.Fragment,null,
+      React.createElement("p",{style:{...secS,marginTop:14}},`🔒 Upcoming (${upcoming.length})`),
+      upcoming.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"upcoming",h,onDo})),
+    ),
+  );
+}
+
+/* ═══════════════════ WORKOUT TAB ═══════════════════ */
+function WorkoutTab({qs,dn,onDo,lv,rk,sRk}) {
+  return React.createElement("div",null,
+    React.createElement("p",{style:secS},"⚔️ Training Grounds"),
+    React.createElement("div",{style:{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}},
+      ["E","D","C","B","A","S"].map(r=>React.createElement("button",{key:r,onClick:()=>sRk(r),style:{padding:"5px 12px",borderRadius:6,border:"1.5px solid",fontSize:13,fontFamily:"'Orbitron'",fontWeight:700,cursor:"pointer",borderColor:RC[r],color:rk===r?"#000":RC[r],background:rk===r?RC[r]:"transparent",boxShadow:rk===r?`0 0 12px ${RG[r]}`:"none"}},r))
+    ),
+    qs.filter(q=>q.rank===rk).map(q=>{
+      const lk=q.rl&&lv<q.rl;const isDone=dn.includes(q.id);
+      return React.createElement("button",{key:q.id,onClick:()=>!isDone&&!lk&&onDo(q),disabled:lk||isDone,
+        style:{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",marginBottom:6,borderRadius:10,borderLeft:`3px solid ${RC[q.rank]}`,
+          background:isDone?"rgba(34,197,94,.05)":"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.1)",
+          opacity:lk?.35:isDone?.5:1,cursor:lk||isDone?"default":"pointer",textAlign:"left",
+          WebkitAppearance:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Rajdhani'"}},
+        React.createElement("span",{style:{fontSize:22,width:32,textAlign:"center"}},lk?"🔒":q.icon),
+        React.createElement("div",{style:{flex:1}},
+          React.createElement("p",{style:{fontSize:14,fontWeight:700}},q.name,React.createElement("span",{style:{color:RC[q.rank],fontSize:10,fontFamily:"Orbitron"}},` (${q.rank})`)),
+          React.createElement("p",{style:{fontSize:11,color:"#94a3b8"}},lk?`Requires Level ${q.rl}`:q.desc),
+        ),
+        isDone ? React.createElement("span",{style:{fontSize:20,color:"#22c55e"}},"✓") :
+          !lk && React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700}},`+${q.xp}`),
+      );
+    }),
+  );
+}
+
+/* ═══════════════════ TIMERS TAB ═══════════════════ */
+function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst}) {
+  return React.createElement("div",null,
+    React.createElement("p",{style:secS},"⏰ Timed Reminders"),
+    !nOn ? React.createElement("button",{onClick:onEN,style:{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"12px 14px",marginBottom:10,borderRadius:12,background:"linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.15))",border:"1px solid rgba(129,140,248,.25)",cursor:"pointer",textAlign:"left",color:"#e2e8f0",fontFamily:"'Rajdhani'",WebkitAppearance:"none",outline:"none"}},
+      React.createElement("span",{style:{fontSize:18}},"🔔"),
+      React.createElement("div",null,React.createElement("p",{style:{fontSize:13,fontWeight:700,color:"#c7d2fe"}},"Enable Notifications"),React.createElement("p",{style:{fontSize:10,color:"#94a3b8"}},"Push to phone & watch")),
+    ) :
+    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",marginBottom:10,borderRadius:8,background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)"}},React.createElement("span",null,"✅"),React.createElement("p",{style:{fontSize:12,color:"#4ade80"}},"Notifications Active")),
+    React.createElement("p",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#64748b",marginBottom:10}},`${cnt} reminders today`),
+    ts.map(t=>React.createElement("div",{key:t.id,style:{display:"flex",alignItems:"center",gap:8,padding:12,marginBottom:6,borderRadius:10,background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.1)"}},
+      React.createElement("span",{style:{fontSize:22}},t.icon),
+      React.createElement("div",{style:{flex:1,minWidth:0}},
+        React.createElement("p",{style:{fontSize:14,fontWeight:700,color:t.enabled?"#e2e8f0":"#64748b"}},t.name),
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:5,marginTop:3,flexWrap:"wrap"}},
+          React.createElement("select",{value:t.intervalMin,onChange:e=>onUpd(t.id,+e.target.value),style:{padding:"2px 4px",borderRadius:4,border:"1px solid rgba(99,102,241,.2)",background:"rgba(15,23,42,.8)",color:"#c7d2fe",fontSize:11,fontFamily:"'Orbitron'",outline:"none"}},
+            [15,20,30,40,45,60,90,120].map(v=>React.createElement("option",{key:v,value:v},v<60?`${v}m`:`${v/60}h`))
+          ),
+          React.createElement("span",{style:{fontSize:10,fontFamily:"Orbitron",color:"#818cf8",fontWeight:700}},`+${t.xp}XP`),
+          React.createElement("button",{onClick:()=>onTst(t),style:{padding:"1px 6px",borderRadius:4,border:"1px solid rgba(129,140,248,.25)",background:"rgba(99,102,241,.1)",color:"#a5b4fc",fontSize:10,cursor:"pointer",fontFamily:"'Orbitron'"}},"▶"),
+        ),
+      ),
+      React.createElement("button",{onClick:()=>onTog(t.id),style:{width:38,height:22,borderRadius:11,border:"none",cursor:"pointer",display:"flex",alignItems:"center",padding:2,background:t.enabled?"#818cf8":"rgba(100,116,139,.3)",justifyContent:t.enabled?"flex-end":"flex-start",flexShrink:0}},
+        React.createElement("div",{style:{width:18,height:18,borderRadius:9,background:"#fff"}})
+      ),
+    )),
+  );
+}
+
+/* ═══════════════════ STATS TAB ═══════════════════ */
+function StatsTab({state,onAl,onRst}) {
+  const mx=Math.max(...Object.values(state.stats),10);
+  const cl={STR:"#ef4444",VIT:"#22c55e",AGI:"#3b82f6",INT:"#a855f7",CHA:"#f59e0b"};
+  return React.createElement("div",null,
+    React.createElement("p",{style:secS},"📊 Hunter Status"),
+    state.statPoints>0 && React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"8px 14px",marginBottom:12,borderRadius:10,background:"linear-gradient(90deg,rgba(99,102,241,.15),rgba(168,85,247,.15))",border:"1px solid rgba(129,140,248,.3)",fontSize:14,fontWeight:600,color:"#c7d2fe",fontFamily:"'Orbitron'"}},React.createElement("span",{style:{animation:"pulse-glow 1.5s infinite",fontSize:16}},"⭐"),`${state.statPoints} point${state.statPoints>1?"s":""}`),
+    React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8,marginBottom:18}},
+      SN.map(st=>React.createElement("div",{key:st,style:{display:"flex",alignItems:"center",gap:6}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:3,width:80,flexShrink:0}},
+          React.createElement("span",{style:{fontSize:14}},SI[st]),
+          React.createElement("span",{style:{fontFamily:"'Orbitron'",fontSize:11,fontWeight:700,color:"#94a3b8",width:28}},st),
+          React.createElement("span",{style:{fontFamily:"'Orbitron'",fontSize:13,fontWeight:700,width:22,textAlign:"right"}},state.stats[st]),
+        ),
+        React.createElement("div",{style:{flex:1,height:9,borderRadius:4,background:"rgba(30,41,59,.6)",overflow:"hidden"}},
+          React.createElement("div",{style:{height:"100%",borderRadius:4,transition:"width .5s",background:cl[st],width:`${(state.stats[st]/mx)*100}%`}})
+        ),
+        state.statPoints>0 && React.createElement("button",{onClick:()=>onAl(st),style:{width:26,height:26,borderRadius:6,border:"1.5px solid #818cf8",background:"rgba(99,102,241,.15)",color:"#818cf8",fontSize:16,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Orbitron'"}},"+"),
+      ))
+    ),
+    React.createElement("div",{style:{background:"rgba(30,41,59,.3)",border:"1px solid rgba(99,102,241,.1)",borderRadius:12,padding:12,marginBottom:14}},
+      [["Title",state.title],["Level",state.level],["Total XP",state.totalXp.toLocaleString()],["Streak",`${state.streak} days`],["HP",`${state.hp}/${state.maxHp}`],["MP",`${state.mp}/${state.maxMp}`],["Failed Today",(state.failedToday||[]).length]].map(([k,v])=>
+        React.createElement("div",{key:k,style:{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(99,102,241,.06)"}},
+          React.createElement("span",{style:{fontSize:12,color:"#64748b"}},k),
+          React.createElement("span",{style:{fontSize:12,fontWeight:700,fontFamily:"'Orbitron'",color:"#c7d2fe"}},v),
+        )
+      )
+    ),
+    React.createElement("button",{onClick:onRst,style:{width:"100%",padding:10,borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"}},"Reset Progress"),
+  );
+}
+
+/* ═══════════════════ CUSTOM QUEST MODAL ═══════════════════ */
+function CQModal({onAdd,onClose}) {
+  const [n,sN]=useState(""); const [d,sD]=useState(""); const [xp,sX]=useState(15); const [st,sS]=useState("STR"); const [ic,sI]=useState("⭐");
+  return React.createElement("div",{style:ov,onClick:onClose},
+    React.createElement("div",{style:{width:"100%",maxWidth:360,background:"linear-gradient(160deg,#1a1a2e,#16213e)",border:"1px solid rgba(99,102,241,.25)",borderRadius:16,padding:"20px 18px",animation:"popIn .3s ease"},onClick:e=>e.stopPropagation()},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:18,color:"#c7d2fe",marginBottom:12,textAlign:"center"}},"⚔️ Create Quest"),
+      React.createElement("label",{style:mlS},"Name"),
+      React.createElement("input",{value:n,onChange:e=>sN(e.target.value),placeholder:"e.g. Practice Guitar",style:miS,maxLength:40}),
+      React.createElement("label",{style:mlS},"Description"),
+      React.createElement("input",{value:d,onChange:e=>sD(e.target.value),placeholder:"e.g. Play 15 min",style:miS,maxLength:60}),
+      React.createElement("label",{style:mlS},"Icon"),
+      React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5}},
+        CI.map(i=>React.createElement("button",{key:i,onClick:()=>sI(i),style:{width:32,height:32,borderRadius:6,border:`1px solid ${ic===i?"#818cf8":"rgba(99,102,241,.15)"}`,background:ic===i?"rgba(99,102,241,.2)":"rgba(30,41,59,.4)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}},i))
+      ),
+      React.createElement("div",{style:{display:"flex",gap:8,marginTop:10}},
+        React.createElement("div",{style:{flex:1}},React.createElement("label",{style:mlS},"XP"),React.createElement("select",{value:xp,onChange:e=>sX(+e.target.value),style:msS},[5,10,15,20,25,30,40,50,75,100].map(v=>React.createElement("option",{key:v,value:v},v)))),
+        React.createElement("div",{style:{flex:1}},React.createElement("label",{style:mlS},"Stat"),React.createElement("select",{value:st,onChange:e=>sS(e.target.value),style:msS},SN.map(s=>React.createElement("option",{key:s,value:s},`${SI[s]} ${s}`)))),
+      ),
+      React.createElement("div",{style:{display:"flex",gap:8,marginTop:14}},
+        React.createElement("button",{onClick:()=>{if(n.trim())onAdd({id:`cq_${Date.now()}`,name:n.trim(),desc:d.trim()||"Custom quest",xp,stat:st,icon:ic});},disabled:!n.trim(),style:{...bpS,flex:1,opacity:n.trim()?1:.4}},"Create"),
+        React.createElement("button",{onClick:onClose,style:{...bgS,flex:1}},"Cancel"),
+      ),
+    )
+  );
+}
+
+/* ═══════════════════ SHARED STYLES ═══════════════════ */
+const ov = {position:"fixed",inset:0,zIndex:150,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,.85)",backdropFilter:"blur(4px)",padding:16,animation:"fadeInUp .3s ease"};
+const popS = {textAlign:"center",padding:"24px 20px",borderRadius:16,background:"linear-gradient(160deg,#1a1a2e,#16213e)",border:"1px solid rgba(99,102,241,.25)",width:"85%",maxWidth:340,animation:"popIn .3s ease"};
+const bpS = {padding:"10px 0",borderRadius:8,border:"none",background:"linear-gradient(135deg,#6366f1,#818cf8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"};
+const bgS = {padding:"10px 0",borderRadius:8,border:"1px solid rgba(100,116,139,.3)",background:"transparent",color:"#94a3b8",fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"};
+const toastS = {position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(90deg,rgba(99,102,241,.95),rgba(129,140,248,.95))",color:"#fff",padding:"7px 18px",borderRadius:10,fontSize:13,fontWeight:700,fontFamily:"'Orbitron'",letterSpacing:1,zIndex:200,boxShadow:"0 4px 20px rgba(99,102,241,.4)",animation:"slideIn .3s ease",whiteSpace:"nowrap"};
+const secS = {fontFamily:"'Cinzel',serif",fontSize:16,color:"#c7d2fe",marginBottom:6,letterSpacing:1};
+const mlS = {fontSize:11,color:"#94a3b8",marginBottom:3,marginTop:8,display:"block",fontFamily:"'Orbitron'",letterSpacing:.5};
+const miS = {width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid rgba(99,102,241,.2)",background:"rgba(15,23,42,.8)",color:"#e2e8f0",fontSize:14,outline:"none"};
+const msS = {width:"100%",padding:"7px 8px",borderRadius:8,border:"1px solid rgba(99,102,241,.2)",background:"rgba(15,23,42,.8)",color:"#e2e8f0",fontSize:13,outline:"none"};
+
+/* ═══════════════════ RENDER ═══════════════════ */
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
