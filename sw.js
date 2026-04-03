@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sl-life-v2';
+const CACHE_NAME = 'sl-life-v3';
 const URLS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -17,13 +17,42 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Handle notification clicks
+// Background timer scheduling
+const swTimers = {};
+
+function scheduleTimer(t) {
+  if (swTimers[t.id]) clearTimeout(swTimers[t.id]);
+  swTimers[t.id] = setTimeout(() => {
+    self.registration.showNotification(`⚔️ ${t.name}`, {
+      body: `${t.desc} · +${t.xp} XP`,
+      tag: t.id,
+      renotify: true,
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+    });
+    scheduleTimer(t); // reschedule
+  }, t.intervalMs);
+}
+
+self.addEventListener('message', e => {
+  if (!e.data) return;
+  if (e.data.type === 'SCHEDULE_TIMERS') {
+    // Clear all existing SW timers
+    Object.keys(swTimers).forEach(k => { clearTimeout(swTimers[k]); delete swTimers[k]; });
+    // Schedule new ones
+    (e.data.timers || []).forEach(scheduleTimer);
+  }
+});
+
+// Handle notification clicks — focus app or open it
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
-    clients.matchAll({ type: 'window' }).then(cls => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
+      const focused = cls.find(c => c.visibilityState === 'visible');
+      if (focused) { focused.focus(); return; }
       if (cls.length > 0) { cls[0].focus(); return; }
-      clients.openWindow('./index.html');
+      clients.openWindow('./');
     })
   );
 });

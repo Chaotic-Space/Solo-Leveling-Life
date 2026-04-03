@@ -299,7 +299,8 @@ function pickRandomQuest(state) {
 }
 
 async function generateAIQuest(state) {
-  const apiKey = localStorage.getItem("sl_api_key")||"";
+  const provider = localStorage.getItem("sl_ai_provider")||"gemini";
+  const apiKey = localStorage.getItem(`sl_api_key_${provider}`)||"";
   if(!apiKey) return pickRandomQuest(state);
 
   const h = NOW_H();
@@ -318,17 +319,46 @@ Quest must be completable today. Consider time of day. XP 10-80. Target weak sta
 Respond ONLY JSON: {"name":"max 25 chars","desc":"max 50 chars","xp":number,"stat":"STR|VIT|AGI|INT|CHA","icon":"emoji","flavor":"system msg max 80 chars"}`;
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
-      body: JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:250,messages:[{role:"user",content:prompt}]}),
-    });
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    const text = data.content?.filter(b=>b.type==="text").map(b=>b.text).join("").trim();
+    let text;
+    if(provider==="anthropic") {
+      const res = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:250,messages:[{role:"user",content:prompt}]}),
+      });
+      if(!res.ok) throw new Error();
+      const d = await res.json();
+      text = d.content?.filter(b=>b.type==="text").map(b=>b.text).join("").trim();
+    } else if(provider==="openai") {
+      const res = await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},
+        body:JSON.stringify({model:"gpt-4o-mini",max_tokens:250,messages:[{role:"user",content:prompt}]}),
+      });
+      if(!res.ok) throw new Error();
+      const d = await res.json();
+      text = d.choices?.[0]?.message?.content?.trim();
+    } else {
+      // Google Gemini (default, free tier)
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:250}}),
+      });
+      if(!res.ok) throw new Error();
+      const d = await res.json();
+      text = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    }
     const q = JSON.parse(text.replace(/```json\s*|```\s*/g,"").trim());
     return { id:`rq_${Date.now()}`, name:String(q.name).slice(0,30), desc:String(q.desc||"").slice(0,60), xp:Math.min(Math.max(+q.xp||15,5),120), stat:SN.includes(q.stat)?q.stat:"STR", icon:q.icon||"🎲", flavor:String(q.flavor||"").slice(0,100), isRandom:true };
   } catch { return pickRandomQuest(state); }
+}
+
+/* ═══════════════════ SW NOTIFICATION HELPER ═══════════════════ */
+function swNotif(title, body, tag) {
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg=>{
+      reg.showNotification(title,{body,tag,renotify:true,icon:'./icons/icon-192.png',badge:'./icons/icon-192.png'});
+    }).catch(()=>{ try{new Notification(title,{body,tag});}catch{} });
+  } else { try{new Notification(title,{body,tag});}catch{} }
 }
 
 /* ═══════════════════ MAIN APP ═══════════════════ */
@@ -426,12 +456,22 @@ function App() {
     if(!state||loading) return;
     Object.values(tiRefs.current).forEach(clearInterval);
     tiRefs.current={};
-    state.timerSettings.filter(t=>t.enabled).forEach(t=>{
+    const enabled = state.timerSettings.filter(t=>t.enabled);
+    enabled.forEach(t=>{
       tiRefs.current[t.id]=setInterval(()=>{
-        if("Notification"in window && Notification.permission==="granted") try{new Notification(`⚔️ ${t.name}`,{body:t.desc,tag:t.name,renotify:true});}catch{}
+        swNotif(`⚔️ ${t.name}`,`${t.desc} · +${t.xp} XP`,t.id);
         setTimerPop({...t});
       }, t.intervalMin*60*1000);
     });
+    // Schedule background notifications via service worker
+    if('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg=>{
+        if(reg.active) reg.active.postMessage({
+          type:'SCHEDULE_TIMERS',
+          timers: enabled.map(t=>({id:t.id,name:t.name,desc:t.desc,xp:t.xp,intervalMs:t.intervalMin*60*1000}))
+        });
+      }).catch(()=>{});
+    }
     return ()=>Object.values(tiRefs.current).forEach(clearInterval);
   },[state?.timerSettings,loading]);
 
@@ -524,7 +564,7 @@ function App() {
   const togTmr=useCallback(id=>{setState(p=>({...p,timerSettings:p.timerSettings.map(t=>t.id===id?{...t,enabled:!t.enabled}:t)}));},[]);
   const updTmr=useCallback((id,m)=>{setState(p=>({...p,timerSettings:p.timerSettings.map(t=>t.id===id?{...t,intervalMin:m}:t)}));},[]);
   const enNotif=useCallback(async()=>{if(!("Notification"in window))return;const ok=await Notification.requestPermission()==="granted";setState(p=>({...p,notificationsEnabled:ok}));showT(ok?"Notifications ON!":"Blocked",ok?"stat":"warn");},[showT]);
-  const tstTmr=useCallback(t=>{if("Notification"in window&&Notification.permission==="granted")try{new Notification(`⚔️ ${t.name}`,{body:t.desc});}catch{}setTimerPop({...t});},[]);
+  const tstTmr=useCallback(t=>{swNotif(`⚔️ ${t.name}`,`${t.desc} · +${t.xp} XP`,t.id);setTimerPop({...t});},[]);
   const allocS=useCallback(st=>{setState(p=>{if(p.statPoints<=0)return p;const n={...p,stats:{...p.stats,[st]:p.stats[st]+1},statPoints:p.statPoints-1};if(st==="VIT"){n.maxHp=100+(p.level-1)*15+(n.stats.VIT-1)*5;n.hp=Math.min(p.hp+5,n.maxHp);}if(st==="INT"){n.maxMp=50+(p.level-1)*8+(n.stats.INT-1)*3;n.mp=Math.min(p.mp+3,n.maxMp);}return n;});showT(`+1 ${SL[st]}`,"stat");},[showT]);
   const resetG=useCallback(()=>{if(confirm("Reset all progress?")){const f={...DEFAULT_STATE,todayDate:TDK()};setState(f);localStorage.setItem("sl-v7",JSON.stringify(f));showT("Reset","warn");}},[showT]);
 
@@ -859,18 +899,32 @@ function CQModal({onAdd,onClose}) {
 
 /* ═══════════════════ SETTINGS TAB ═══════════════════ */
 function SettingsTab({freqMode,onFreqMode}) {
-  const [key,setKey]=React.useState(()=>localStorage.getItem("sl_api_key")||"");
+  const [provider,setProvider]=React.useState(()=>localStorage.getItem("sl_ai_provider")||"gemini");
+  const [key,setKey]=React.useState(()=>localStorage.getItem(`sl_api_key_${localStorage.getItem("sl_ai_provider")||"gemini"}`)||"");
   const [saved,setSaved]=React.useState(false);
-  const saveKey=()=>{localStorage.setItem("sl_api_key",key.trim());setSaved(true);setTimeout(()=>setSaved(false),2000);};
+  const providerInfo={
+    gemini:{label:"Google Gemini",placeholder:"AIza...",hint:"Free tier available — get key at aistudio.google.com",color:"#4ade80"},
+    openai:{label:"OpenAI (ChatGPT)",placeholder:"sk-...",hint:"GPT-4o-mini — get key at platform.openai.com (pay-per-use)",color:"#60a5fa"},
+    anthropic:{label:"Anthropic (Claude)",placeholder:"sk-ant-...",hint:"Claude Haiku — get key at console.anthropic.com",color:"#a855f7"},
+  };
+  const switchProvider=p=>{setProvider(p);localStorage.setItem("sl_ai_provider",p);setKey(localStorage.getItem(`sl_api_key_${p}`)||"");setSaved(false);};
+  const saveKey=()=>{localStorage.setItem(`sl_api_key_${provider}`,key.trim());setSaved(true);setTimeout(()=>setSaved(false),2000);};
+  const pi=providerInfo[provider];
   return React.createElement("div",null,
     React.createElement("p",{style:secS},"⚙️ Settings"),
 
     React.createElement("div",{style:{background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.15)",borderRadius:12,padding:"14px 14px",marginBottom:14}},
-      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#c7d2fe",marginBottom:6}},"🤖 AI Quest Generation"),
-      React.createElement("p",{style:{fontSize:11,color:"#64748b",marginBottom:10,lineHeight:1.5}},"Paste your Anthropic API key to unlock AI-generated System Quests. Get one at console.anthropic.com (separate from your Claude subscription)."),
-      React.createElement("label",{style:mlS},"API Key"),
-      React.createElement("input",{type:"password",value:key,onChange:e=>setKey(e.target.value),placeholder:"sk-ant-...",style:{...miS,marginBottom:8,fontFamily:"monospace",fontSize:12}}),
-      React.createElement("button",{onClick:saveKey,style:{...bpS,width:"100%",fontSize:13,padding:"9px 0",background:saved?"linear-gradient(135deg,#16a34a,#22c55e)":"linear-gradient(135deg,#6366f1,#818cf8)"}},saved?"✓ Saved!":"Save Key"),
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#c7d2fe",marginBottom:10}},"🤖 AI Quest Generation"),
+      React.createElement("label",{style:mlS},"AI Provider"),
+      React.createElement("div",{style:{display:"flex",gap:6,marginBottom:10,marginTop:4}},
+        Object.entries(providerInfo).map(([k,v])=>
+          React.createElement("button",{key:k,onClick:()=>switchProvider(k),style:{flex:1,padding:"7px 4px",borderRadius:8,border:`1.5px solid ${provider===k?v.color:"rgba(99,102,241,.2)"}`,background:provider===k?`rgba(${k==="gemini"?"74,222,128":k==="openai"?"96,165,250":"168,85,247"},.1)`:"transparent",color:provider===k?v.color:"#64748b",fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"'Orbitron'"}},v.label.split(" ")[0])
+        )
+      ),
+      React.createElement("p",{style:{fontSize:10,color:pi.color,marginBottom:8,lineHeight:1.4}},`★ ${pi.hint}`),
+      React.createElement("label",{style:mlS},`${pi.label} API Key`),
+      React.createElement("input",{type:"password",value:key,onChange:e=>setKey(e.target.value),placeholder:pi.placeholder,style:{...miS,marginBottom:8,fontFamily:"monospace",fontSize:12}}),
+      React.createElement("button",{onClick:saveKey,style:{...bpS,width:"100%",fontSize:13,padding:"9px 0",background:saved?"linear-gradient(135deg,#16a34a,#22c55e)":`linear-gradient(135deg,${pi.color},${pi.color}cc)`}},saved?"✓ Saved!":"Save Key"),
       key&&React.createElement("p",{style:{fontSize:10,color:"#22c55e",marginTop:6,textAlign:"center",fontFamily:"'Orbitron'"}},"Key stored locally on this device only."),
     ),
 
