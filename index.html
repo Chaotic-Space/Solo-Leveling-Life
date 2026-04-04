@@ -132,6 +132,105 @@ const TIMER_DEFAULTS = [
   { id:"t_b", name:"Breathe", desc:"5 deep breaths", icon:"🌬️", intervalMin:90, xp:8, stat:"INT", enabled:true },
 ];
 
+/* ═══════════════════ NEW FEATURE CONSTANTS ═══════════════════ */
+const BOSS_POOL = [
+  {id:"b1",name:"Iron Fang",icon:"🐺",hp:50,maxHp:50,xpReward:160},
+  {id:"b2",name:"Stone Golem",icon:"🗿",hp:80,maxHp:80,xpReward:200},
+  {id:"b3",name:"Shadow Wraith",icon:"👻",hp:60,maxHp:60,xpReward:180},
+  {id:"b4",name:"Acid Serpent",icon:"🐍",hp:70,maxHp:70,xpReward:190},
+  {id:"b5",name:"Thunder Drake",icon:"🐉",hp:100,maxHp:100,xpReward:240},
+  {id:"b6",name:"Frost Lich",icon:"💀",hp:90,maxHp:90,xpReward:220},
+  {id:"b7",name:"Void Sentinel",icon:"🌑",hp:120,maxHp:120,xpReward:280},
+  {id:"b8",name:"Blood Tyrant",icon:"🔴",hp:140,maxHp:140,xpReward:320},
+  {id:"b9",name:"Chaos Hydra",icon:"🐲",hp:160,maxHp:160,xpReward:360},
+  {id:"b10",name:"Monarch's Shadow",icon:"👑",hp:200,maxHp:200,xpReward:400},
+];
+
+const QUEST_CHAINS = [
+  {id:"hydration",name:"Hydration Master",icon:"💧",bonusXp:50,steps:[
+    {id:"ch_h1",name:"Morning Water",desc:"Drink 2 glasses on waking",xp:12,stat:"VIT",icon:"💧"},
+    {id:"ch_h2",name:"Midday Hydration",desc:"4 more glasses by noon",xp:15,stat:"VIT",icon:"💧"},
+    {id:"ch_h3",name:"Full Day Hydrated",desc:"Reach 8 glasses total",xp:18,stat:"VIT",icon:"💧"},
+  ]},
+  {id:"iron",name:"Iron Body",icon:"💪",bonusXp:75,steps:[
+    {id:"ch_i1",name:"Morning Warmup",desc:"5 min stretch routine",xp:12,stat:"AGI",icon:"🤸"},
+    {id:"ch_i2",name:"Strength Set",desc:"30 push-ups, 30 squats",xp:25,stat:"STR",icon:"💪"},
+    {id:"ch_i3",name:"Iron Endurance",desc:"1 min plank hold",xp:20,stat:"VIT",icon:"🧱"},
+  ]},
+  {id:"mind",name:"Mind Fortress",icon:"🧠",bonusXp:60,steps:[
+    {id:"ch_m1",name:"Morning Focus",desc:"10 min no-phone morning",xp:15,stat:"INT",icon:"📵"},
+    {id:"ch_m2",name:"Deep Work Block",desc:"25 min focused work",xp:20,stat:"INT",icon:"🎯"},
+    {id:"ch_m3",name:"Evening Review",desc:"Write about what you learned",xp:15,stat:"INT",icon:"📝"},
+  ]},
+  {id:"shadow",name:"Shadow Path",icon:"🌑",bonusXp:100,steps:[
+    {id:"ch_s1",name:"Arise Early",desc:"Wake before 7 AM",xp:20,stat:"STR",icon:"⏰"},
+    {id:"ch_s2",name:"Cold Trial",desc:"Take a cold shower",xp:25,stat:"STR",icon:"🥶"},
+    {id:"ch_s3",name:"Hunter's Run",desc:"Run or jog 3km",xp:35,stat:"AGI",icon:"🏃"},
+    {id:"ch_s4",name:"Shadow Meditation",desc:"10 min mindfulness",xp:15,stat:"INT",icon:"🧘"},
+  ]},
+];
+
+const SHADOWS = [
+  {id:"igris",name:"Igris",icon:"⚔️",reqLevel:5,reqStreak:0,xpPerHr:3,stat:"STR",desc:"Knight Commander"},
+  {id:"tank",name:"Tank",icon:"🛡️",reqLevel:8,reqStreak:0,xpPerHr:4,stat:"VIT",desc:"Iron Shield"},
+  {id:"iron",name:"Iron",icon:"🔩",reqLevel:0,reqStreak:7,xpPerHr:3,stat:"AGI",desc:"7-day streak unlock"},
+  {id:"beru",name:"Beru",icon:"🐝",reqLevel:10,reqStreak:0,xpPerHr:5,stat:"INT",desc:"Marshal of Shadows"},
+  {id:"tusk",name:"Tusk",icon:"🦷",reqLevel:12,reqStreak:0,xpPerHr:4,stat:"CHA",desc:"Orc Chief"},
+  {id:"fangs",name:"Fangs",icon:"🐺",reqLevel:6,reqStreak:0,xpPerHr:3,stat:"STR",desc:"Wolf Rider"},
+  {id:"kaisel",name:"Kaisel",icon:"🐉",reqLevel:15,reqStreak:0,xpPerHr:7,stat:"AGI",desc:"Dragon King"},
+  {id:"bellion",name:"Bellion",icon:"💎",reqLevel:18,reqStreak:0,xpPerHr:10,stat:"STR",desc:"Grand Marshal"},
+];
+
+const EQUIPMENT_ITEMS = [
+  {id:"eq_w1",name:"Iron Sword",slot:"weapon",icon:"🗡️",reqLevel:3,xpStat:"STR",xpPct:10,desc:"+10% STR XP"},
+  {id:"eq_w2",name:"Shadow Blade",slot:"weapon",icon:"⚔️",reqLevel:6,xpStat:"STR",xpPct:20,desc:"+20% STR XP"},
+  {id:"eq_w3",name:"Demon Sword",slot:"weapon",icon:"🔥",reqLevel:10,xpStat:"STR",xpPct:30,desc:"+30% STR XP"},
+  {id:"eq_w4",name:"Ruler's Blade",slot:"weapon",icon:"✨",reqLevel:14,xpStat:"AGI",xpPct:25,desc:"+25% AGI XP"},
+  {id:"eq_w5",name:"Kamish's Wrath",slot:"weapon",icon:"☠️",reqLevel:18,xpStat:"STR",xpPct:50,desc:"+50% STR XP"},
+  {id:"eq_a1",name:"Hunter Vest",slot:"armor",icon:"🦺",reqLevel:3,xpStat:"VIT",xpPct:10,desc:"+10% VIT XP"},
+  {id:"eq_a2",name:"Shadow Armor",slot:"armor",icon:"🥋",reqLevel:6,xpStat:"VIT",xpPct:20,desc:"+20% VIT XP"},
+  {id:"eq_a3",name:"Dragon Scale",slot:"armor",icon:"🐲",reqLevel:10,xpStat:"VIT",xpPct:35,desc:"+35% VIT XP"},
+  {id:"eq_a4",name:"Monarch's Robes",slot:"armor",icon:"👘",reqLevel:14,xpStat:"VIT",xpPct:50,desc:"+50% VIT XP"},
+  {id:"eq_a5",name:"Igris's Plate",slot:"armor",icon:"🛡️",reqLevel:18,xpStat:"VIT",xpPct:75,desc:"+75% VIT XP"},
+  {id:"eq_c1",name:"Focus Ring",slot:"accessory",icon:"💍",reqLevel:3,xpStat:"INT",xpPct:10,desc:"+10% INT XP"},
+  {id:"eq_c2",name:"Mana Pendant",slot:"accessory",icon:"📿",reqLevel:6,xpStat:"INT",xpPct:20,desc:"+20% INT XP"},
+  {id:"eq_c3",name:"Shadow Crystal",slot:"accessory",icon:"🔮",reqLevel:10,xpStat:"CHA",xpPct:25,desc:"+25% CHA XP"},
+  {id:"eq_c4",name:"System's Eye",slot:"accessory",icon:"👁️",reqLevel:14,xpStat:"INT",xpPct:40,desc:"+40% INT XP"},
+  {id:"eq_c5",name:"Monarch's Ring",slot:"accessory",icon:"⭐",reqLevel:18,xpStat:"INT",xpPct:60,desc:"+60% INT XP"},
+];
+
+const WEEKLY_DUNGEON_NAMES=["Demon Castle","Shadow Realm","Iron Fortress","Cursed Labyrinth","Void Rift","Crystal Cavern","Blood Arena","Abyss Gate"];
+
+const TITLE_POOL = [
+  {id:"t_beginner",name:"Beginner Hunter",icon:"🌱",check:s=>s.totalXp>=0},
+  {id:"t_diligent",name:"Diligent One",icon:"📖",check:s=>s.streak>=3},
+  {id:"t_warrior",name:"Warrior",icon:"⚔️",check:s=>s.stats.STR>=10},
+  {id:"t_iron",name:"Iron Body",icon:"💪",check:s=>s.stats.VIT>=10},
+  {id:"t_swift",name:"Swift Hunter",icon:"⚡",check:s=>s.stats.AGI>=10},
+  {id:"t_sage",name:"Sage",icon:"🧠",check:s=>s.stats.INT>=10},
+  {id:"t_noble",name:"Noble One",icon:"✨",check:s=>s.stats.CHA>=10},
+  {id:"t_shadow",name:"Shadow Soldier",icon:"🌑",check:s=>(s.shadowArmy||[]).length>=3},
+  {id:"t_boss",name:"Boss Slayer",icon:"🗡️",check:s=>(s.bossesDefeated||0)>=5},
+  {id:"t_dungeon",name:"Dungeon Clearer",icon:"🏰",check:s=>s.weeklyDungeon?.cleared},
+  {id:"t_monarch",name:"Shadow Monarch",icon:"👑",check:s=>s.level>=18},
+  {id:"t_streak",name:"Flame Keeper",icon:"🔥",check:s=>s.streak>=14},
+];
+
+const PENALTY_QUEST_POOL = [
+  {id:"pq1",name:"Emergency Water",desc:"Drink 2 glasses now",xp:8,stat:"VIT",icon:"💧",hpRestore:10},
+  {id:"pq2",name:"Quick Recovery",desc:"5 min gentle stretch",xp:10,stat:"VIT",icon:"🤸",hpRestore:12},
+  {id:"pq3",name:"Breathe Deep",desc:"Box breathing 3 min",xp:8,stat:"INT",icon:"🌬️",hpRestore:10},
+  {id:"pq4",name:"Short Walk",desc:"Walk outside 5 min",xp:10,stat:"AGI",icon:"🚶",hpRestore:12},
+  {id:"pq5",name:"Rest Quest",desc:"Lie down, eyes closed 5 min",xp:8,stat:"VIT",icon:"😴",hpRestore:15},
+  {id:"pq6",name:"Healthy Snack",desc:"Eat something nutritious",xp:10,stat:"VIT",icon:"🍎",hpRestore:12},
+  {id:"pq7",name:"Self Check-in",desc:"3 kind words to yourself",xp:8,stat:"CHA",icon:"💙",hpRestore:10},
+];
+
+const POMODORO_OPTS=[{min:25,xp:30},{min:45,xp:50},{min:60,xp:65},{min:90,xp:90}];
+
+const getWeekStart=()=>{const d=new Date(),day=d.getDay(),diff=(day===0?-6:1)-day;d.setDate(d.getDate()+diff);return d.toISOString().split("T")[0];};
+const buildWeeklyDungeon=(weekStart,dungeonName)=>{const ranks=["E","D","C","B","S"];const quests=ranks.map(r=>{const pool=WORKOUT_QUESTS.filter(q=>q.rank===r);return pool[Math.floor(Math.random()*pool.length)];});return{weekStart,dungeonName,quests,completedSteps:[],cleared:false,rewardClaimed:false};};
+
 /* ═══════════════════ SOUND ENGINE ═══════════════════ */
 const SoundEngine = {
   ctx:null, enabled:true,
@@ -169,6 +268,14 @@ const ACHIEVEMENTS = [
   {id:"balanced",name:"Balanced Fighter",desc:"All stats reach 10",icon:"⚖️",check:s=>Math.min(...Object.values(s.stats))>=10},
   {id:"stat_master",name:"Stat Master",desc:"Any stat reaches 25",icon:"💎",check:s=>Math.max(...Object.values(s.stats))>=25},
   {id:"system_fav",name:"System's Favorite",desc:"Accept 10 random quests",icon:"🎲",check:s=>(s.achievementCtx?.randomAccepted||0)>=10},
+  {id:"boss_slayer",name:"Boss Slayer",desc:"Defeat your first daily boss",icon:"🗡️",check:s=>(s.bossesDefeated||0)>=1},
+  {id:"monster_slayer",name:"Monster Slayer",desc:"Defeat 10 daily bosses",icon:"⚔️",check:s=>(s.bossesDefeated||0)>=10},
+  {id:"dungeon_clear",name:"Dungeon Cleared",desc:"Complete a weekly dungeon",icon:"🏰",check:s=>s.weeklyDungeon?.cleared},
+  {id:"first_shadow",name:"First Shadow",desc:"Unlock your first shadow soldier",icon:"👥",check:s=>(s.shadowArmy||[]).length>=1},
+  {id:"shadow_monarch",name:"Shadow Monarch",desc:"Unlock all 8 shadows",icon:"🌑",check:s=>(s.shadowArmy||[]).length>=8},
+  {id:"chain_starter",name:"Chain Starter",desc:"Complete any quest chain",icon:"🔗",check:s=>QUEST_CHAINS.some(c=>(s.chainProgress||{})[c.id]>=c.steps.length)},
+  {id:"deep_focus",name:"Deep Focus",desc:"Complete 10 Pomodoro sessions",icon:"🍅",check:s=>(s.pomodoro?.completed||0)>=10},
+  {id:"armed_ready",name:"Armed & Ready",desc:"Equip all 3 gear slots",icon:"🛡️",check:s=>s.equipment?.weapon&&s.equipment?.armor&&s.equipment?.accessory},
 ];
 
 function checkAchievements(state){
@@ -188,6 +295,12 @@ const DEFAULT_STATE = {
   lastFailCheck:0,recentRandomQuests:[],statHistory:{},questFreqMode:"normal",
   summonUsedToday:false,achievements:[],achievementCtx:{randomAccepted:0},
   dailyLog:{},comboTracker:{count:0,lastTime:0},soundEnabled:true,
+  dailyBoss:null,bossesDefeated:0,chainProgress:{},shadowArmy:[],lastPassiveXpTime:0,
+  equipment:{weapon:null,armor:null,accessory:null},unlockedItems:[],
+  weeklyDungeon:null,earnedTitles:["t_beginner"],activeTitle:null,
+  pomodoro:{active:false,seconds:0,total:0,completed:0},
+  penaltyQuests:[],
+  records:{bestStreak:0,bestWeekXp:0,bestDayQuests:0,totalQuestsCompleted:0,totalWorkouts:0},
 };
 
 const getTitle=l=>{if(l>=18)return"Shadow Monarch";if(l>=14)return"National Level";if(l>=10)return"S-Rank Hunter";if(l>=6)return"B-Rank Hunter";if(l>=3)return"D-Rank Hunter";return"E-Rank Hunter";};
@@ -435,8 +548,12 @@ function App() {
   const [tabKey,setTabKey] = useState(0);
   const [hour,setHour] = useState(NOW_H());
   const [failToast,setFailToast] = useState(null);
+  const [showShareCard,setShowShareCard] = useState(false);
+  const [showAddTimer,setShowAddTimer] = useState(false);
+  const [showTitleSelect,setShowTitleSelect] = useState(false);
   const tRef = useRef(null);
   const tiRefs = useRef({});
+  const pomRef = useRef(null);
 
   // Load
   useEffect(()=>{
@@ -450,7 +567,8 @@ function App() {
             s.streak = d<=1 ? s.streak+1 : 0;
             s.completedToday=[]; s.failedToday=[]; s.todayDate=TDK();
             s.timerCompletionsToday=0; s.questsSinceLastRandom=0; s.randomQuestsToday=0; s.lastFailCheck=0;
-            s.summonUsedToday=false;
+            s.summonUsedToday=false; s.dailyBoss=null; s.penaltyQuests=[];
+            if(s.pomodoro)s.pomodoro={...s.pomodoro,active:false,seconds:0,total:0};
             s.hp=Math.min(s.hp+20,s.maxHp); s.mp=Math.min(s.mp+10,s.maxMp);
           }
           if(!s.timerSettings)s.timerSettings=TIMER_DEFAULTS;
@@ -465,6 +583,19 @@ function App() {
           if(!s.dailyLog)s.dailyLog={};
           if(!s.comboTracker)s.comboTracker={count:0,lastTime:0};
           if(s.soundEnabled===undefined)s.soundEnabled=true;
+          if(s.dailyBoss===undefined)s.dailyBoss=null;
+          if(!s.bossesDefeated)s.bossesDefeated=0;
+          if(!s.chainProgress)s.chainProgress={};
+          if(!s.shadowArmy)s.shadowArmy=[];
+          if(!s.lastPassiveXpTime)s.lastPassiveXpTime=0;
+          if(!s.equipment)s.equipment={weapon:null,armor:null,accessory:null};
+          if(!s.unlockedItems)s.unlockedItems=[];
+          if(s.weeklyDungeon===undefined)s.weeklyDungeon=null;
+          if(!s.earnedTitles)s.earnedTitles=["t_beginner"];
+          if(s.activeTitle===undefined)s.activeTitle=null;
+          if(!s.pomodoro)s.pomodoro={active:false,seconds:0,total:0,completed:0};
+          if(!s.penaltyQuests)s.penaltyQuests=[];
+          if(!s.records)s.records={bestStreak:0,bestWeekXp:0,bestDayQuests:0,totalQuestsCompleted:0,totalWorkouts:0};
           if('Notification' in window && s.notificationsEnabled && Notification.permission!=='granted') s.notificationsEnabled=false;
           SoundEngine.enabled=s.soundEnabled!==false;
           setState(s);
@@ -540,6 +671,122 @@ function App() {
     return ()=>Object.values(tiRefs.current).forEach(clearInterval);
   },[state?.timerSettings,loading]);
 
+  // Daily boss reset
+  useEffect(()=>{
+    if(!state||loading) return;
+    const today=TDK();
+    if(!state.dailyBoss || state.dailyBoss.date!==today) {
+      const boss=BOSS_POOL[Math.floor(Math.random()*BOSS_POOL.length)];
+      setState(p=>({...p,dailyBoss:{...boss,date:today,defeated:false}}));
+    }
+  },[state?.todayDate,loading]);
+
+  // Weekly dungeon reset
+  useEffect(()=>{
+    if(!state||loading) return;
+    const ws=getWeekStart();
+    if(!state.weeklyDungeon || state.weeklyDungeon.weekStart!==ws) {
+      const name=WEEKLY_DUNGEON_NAMES[Math.floor(Math.random()*WEEKLY_DUNGEON_NAMES.length)];
+      setState(p=>({...p,weeklyDungeon:buildWeeklyDungeon(ws,name)}));
+    }
+  },[state?.todayDate,loading]);
+
+  // Shadow unlock check
+  useEffect(()=>{
+    if(!state||loading) return;
+    const newUnlocks=SHADOWS.filter(sh=>
+      !state.shadowArmy.includes(sh.id) &&
+      state.level>=sh.reqLevel &&
+      state.streak>=sh.reqStreak
+    ).map(sh=>sh.id);
+    if(newUnlocks.length>0) setState(p=>({...p,shadowArmy:[...p.shadowArmy,...newUnlocks]}));
+  },[state?.level,state?.streak,loading]);
+
+  // Equipment unlock check
+  useEffect(()=>{
+    if(!state||loading) return;
+    const newItems=EQUIPMENT_ITEMS.filter(item=>!state.unlockedItems.includes(item.id)&&state.level>=item.reqLevel).map(i=>i.id);
+    if(newItems.length>0) setState(p=>({...p,unlockedItems:[...p.unlockedItems,...newItems]}));
+  },[state?.level,loading]);
+
+  // Shadow passive XP (every 60s)
+  useEffect(()=>{
+    if(!state||loading||state.shadowArmy.length===0) return;
+    const iv=setInterval(()=>{
+      const now=Date.now();
+      setState(p=>{
+        const hoursElapsed=(now-(p.lastPassiveXpTime||now))/3600000;
+        if(hoursElapsed<0.01) return {...p,lastPassiveXpTime:now};
+        let n={...p,lastPassiveXpTime:now};
+        (p.shadowArmy||[]).forEach(sid=>{
+          const sh=SHADOWS.find(s=>s.id===sid);
+          if(!sh) return;
+          const xp=Math.round(sh.xpPerHr*hoursElapsed);
+          if(xp>0) n=apXp(n,xp,sh.stat,false);
+        });
+        return n;
+      });
+    },60000);
+    return ()=>clearInterval(iv);
+  },[state?.shadowArmy,loading]);
+
+  // Pomodoro countdown
+  useEffect(()=>{
+    if(!state||loading) return;
+    if(state.pomodoro?.active) {
+      pomRef.current=setInterval(()=>{
+        setState(p=>{
+          if(!p.pomodoro?.active) return p;
+          const secs=p.pomodoro.seconds-1;
+          if(secs<=0) {
+            clearInterval(pomRef.current);
+            const cfg=POMODORO_OPTS.find(o=>o.min===Math.round(p.pomodoro.total/60))||POMODORO_OPTS[0];
+            const n=apXp({...p},cfg.xp,"INT",false);
+            swNotif("🍅 Focus Complete!",`+${cfg.xp} XP earned!`,"pom");
+            return {...n,pomodoro:{...p.pomodoro,active:false,seconds:0,completed:(p.pomodoro.completed||0)+1}};
+          }
+          return {...p,pomodoro:{...p.pomodoro,seconds:secs}};
+        });
+      },1000);
+    } else {
+      if(pomRef.current) { clearInterval(pomRef.current); pomRef.current=null; }
+    }
+    return ()=>{ if(pomRef.current){clearInterval(pomRef.current);pomRef.current=null;} };
+  },[state?.pomodoro?.active,loading]);
+
+  // Penalty quest refresh based on HP
+  useEffect(()=>{
+    if(!state||loading) return;
+    const hpPct=state.hp/state.maxHp;
+    if(hpPct<0.5 && (state.penaltyQuests||[]).length===0) {
+      const shuffled=[...PENALTY_QUEST_POOL].sort(()=>Math.random()-.5).slice(0,3);
+      setState(p=>({...p,penaltyQuests:shuffled}));
+    } else if(hpPct>=0.5 && (state.penaltyQuests||[]).length>0) {
+      setState(p=>({...p,penaltyQuests:[]}));
+    }
+  },[state?.hp,loading]);
+
+  // Records + Titles update
+  useEffect(()=>{
+    if(!state||loading) return;
+    const dl=state.dailyLog||{};
+    const today=TDK();
+    const weekXp=Object.entries(dl).filter(([d])=>d>=getWeekStart()).reduce((a,[,v])=>a+(v.xpGained||0),0);
+    const todayQuests=(dl[today]?.completed||0);
+    const rec=state.records||{};
+    const newRec={
+      bestStreak:Math.max(rec.bestStreak||0,state.streak),
+      bestWeekXp:Math.max(rec.bestWeekXp||0,weekXp),
+      bestDayQuests:Math.max(rec.bestDayQuests||0,todayQuests),
+      totalQuestsCompleted:rec.totalQuestsCompleted||0,
+      totalWorkouts:rec.totalWorkouts||0,
+    };
+    const newTitles=TITLE_POOL.filter(t=>!(state.earnedTitles||[]).includes(t.id)&&t.check(state)).map(t=>t.id);
+    if(JSON.stringify(newRec)!==JSON.stringify(rec)||newTitles.length>0) {
+      setState(p=>({...p,records:newRec,earnedTitles:[...(p.earnedTitles||[]),...newTitles]}));
+    }
+  },[state?.totalXp,state?.streak,state?.completedToday?.length,loading]);
+
   // Random quest on open
   useEffect(()=>{
     if(!state||loading) return;
@@ -581,6 +828,91 @@ function App() {
     return n;
   },[]);
 
+  const applyEquipBonus=useCallback((xp,stat,equipment)=>{
+    if(!equipment) return xp;
+    let mult=1;
+    Object.values(equipment).forEach(itemId=>{
+      if(!itemId) return;
+      const item=EQUIPMENT_ITEMS.find(i=>i.id===itemId);
+      if(item&&item.xpStat===stat) mult+=item.xpPct/100;
+    });
+    return Math.round(xp*mult);
+  },[]);
+
+  /* doChainStep defined after doQuest (see below) */
+
+  const doPenaltyQuest=useCallback(pq=>{
+    setState(p=>{
+      const n=apXp({...p},pq.xp,pq.stat,false);
+      n.hp=Math.min(p.hp+pq.hpRestore,p.maxHp);
+      n.penaltyQuests=(p.penaltyQuests||[]).filter(q=>q.id!==pq.id);
+      return n;
+    });
+    setXpAnim(true);setTimeout(()=>setXpAnim(false),600);showT(`+${pq.hpRestore} HP recovered!`,"stat");
+  },[apXp,showT]);
+
+  const doDungeonStep=useCallback(stepIdx=>{
+    setState(p=>{
+      if(!p.weeklyDungeon) return p;
+      const steps=[...p.weeklyDungeon.completedSteps];
+      if(steps.includes(stepIdx)) return p;
+      steps.push(stepIdx);
+      const q=p.weeklyDungeon.quests[stepIdx];
+      let n=apXp({...p},q.xp,q.stat,false);
+      const cleared=steps.length>=p.weeklyDungeon.quests.length;
+      n.weeklyDungeon={...p.weeklyDungeon,completedSteps:steps,cleared};
+      n.records={...n.records,totalWorkouts:(n.records?.totalWorkouts||0)+1};
+      return n;
+    });
+    setXpAnim(true);setTimeout(()=>setXpAnim(false),600);showT("Dungeon step complete!","xp");
+  },[apXp,showT]);
+
+  const claimDungeonReward=useCallback(()=>{
+    setState(p=>{
+      if(!p.weeklyDungeon?.cleared||p.weeklyDungeon?.rewardClaimed) return p;
+      const n=apXp({...p},500,"STR",false);
+      n.weeklyDungeon={...p.weeklyDungeon,rewardClaimed:true};
+      const newAch=checkAchievements(n);
+      if(newAch.length>0)n.achievements=[...(n.achievements||[]),...newAch];
+      return n;
+    });
+    showT("+500 XP Dungeon Reward!","stat");
+  },[apXp,showT]);
+
+  const addCustomTimer=useCallback(t=>{
+    setState(p=>({...p,timerSettings:[...p.timerSettings,{...t,id:`ct_${Date.now()}`,enabled:true}]}));
+    setShowAddTimer(false);showT("Timer added!","stat");
+  },[showT]);
+
+  const delCustomTimer=useCallback(id=>{
+    if(!id.startsWith("ct_")) return;
+    setState(p=>({...p,timerSettings:p.timerSettings.filter(t=>t.id!==id)}));
+  },[]);
+
+  const equipItem=useCallback(itemId=>{
+    const item=EQUIPMENT_ITEMS.find(i=>i.id===itemId);
+    if(!item) return;
+    setState(p=>{
+      const eq={...p.equipment};
+      if(eq[item.slot]===itemId) { eq[item.slot]=null; }
+      else { eq[item.slot]=itemId; }
+      return {...p,equipment:eq};
+    });
+  },[]);
+
+  const startPomodoro=useCallback(minutes=>{
+    setState(p=>({...p,pomodoro:{...p.pomodoro,active:true,seconds:minutes*60,total:minutes*60}}));
+  },[]);
+
+  const cancelPomodoro=useCallback(()=>{
+    setState(p=>({...p,pomodoro:{...p.pomodoro,active:false,seconds:0}}));
+  },[]);
+
+  const setActiveTitleCb=useCallback(titleId=>{
+    setState(p=>({...p,activeTitle:titleId}));
+    setShowTitleSelect(false);
+  },[]);
+
   const maybeRandom=useCallback(async(ns)=>{
     const cnt=(ns.questsSinceLastRandom||0)+1;
     const threshold=ns.questFreqMode==="aggressive"?2:3;
@@ -604,14 +936,28 @@ function App() {
       const comboMult=combo.count>=3?1+(combo.count-2)*0.15:1;
       // Critical hit (10% chance)
       const isCrit=Math.random()<0.10;
-      const baseXp=Math.round(q.xp*comboMult);
-      const n=apXp(p,baseXp,q.stat,isCrit);
+      const eqBonusXp=applyEquipBonus(q.xp,q.stat,p.equipment);
+      const baseXp=Math.round(eqBonusXp*comboMult);
+      let n=apXp(p,baseXp,q.stat,isCrit);
       n.completedToday=[...p.completedToday,q.id];
       n.comboTracker=combo;
+      // Records increment
+      n.records={...(n.records||{}),totalQuestsCompleted:((n.records?.totalQuestsCompleted)||0)+1};
       // Daily log completed count
       const td=TDK();const dl={...(n.dailyLog||{})};
       if(dl[td])dl[td]={...dl[td],completed:(dl[td].completed||0)+1};
       n.dailyLog=dl;
+      // Boss damage
+      if(n.dailyBoss&&!n.dailyBoss.defeated) {
+        const newHp=Math.max(n.dailyBoss.hp-baseXp,0);
+        const defeated=newHp<=0;
+        n.dailyBoss={...n.dailyBoss,hp:newHp,defeated};
+        if(defeated){
+          n=apXp(n,n.dailyBoss.xpReward,"STR",false);
+          n.bossesDefeated=(p.bossesDefeated||0)+1;
+          n._bossDefeated=true;
+        }
+      }
       // Check achievements
       const newAch=checkAchievements(n);
       if(newAch.length>0){n.achievements=[...(n.achievements||[]),...newAch];}
@@ -635,6 +981,24 @@ function App() {
     showT(msg,ns?._isCrit?"warn":"xp");
     if(ns){const ru=await maybeRandom(ns);setState(p=>({...p,...ru}));}
   },[apXp,showT,maybeRandom,state?.soundEnabled]);
+
+  const doChainStep=useCallback(async(chain,stepIdx)=>{
+    const step=chain.steps[stepIdx];
+    if(!step) return;
+    await doQuest(step);
+    setState(p=>{
+      const cp={...p.chainProgress};
+      const prev=cp[chain.id]||0;
+      if(prev!==stepIdx) return p;
+      cp[chain.id]=stepIdx+1;
+      let n={...p,chainProgress:cp};
+      if(cp[chain.id]>=chain.steps.length) {
+        n=apXp(n,chain.bonusXp,"INT",false);
+        swNotif(`🔗 Chain Complete!`,`${chain.name} +${chain.bonusXp} bonus XP`,"chain");
+      }
+      return n;
+    });
+  },[doQuest,apXp]);
 
   const doTimer=useCallback(t=>{
     setState(p=>{const n=apXp(p,t.xp,t.stat);n.timerCompletionsToday=(p.timerCompletionsToday||0)+1;return n;});
@@ -764,6 +1128,9 @@ function App() {
     )),
 
     showCM && React.createElement(CQModal,{onAdd:addCQ,onClose:()=>setShowCM(false)}),
+    showAddTimer && React.createElement(AddTimerModal,{onAdd:addCustomTimer,onClose:()=>setShowAddTimer(false)}),
+    showShareCard && React.createElement(ShareCardModal,{state,onClose:()=>setShowShareCard(false)}),
+    showTitleSelect && React.createElement(TitlesSelectModal,{state,onSelect:setActiveTitleCb,onClose:()=>setShowTitleSelect(false)}),
 
     // Header
     React.createElement("div",{style:{padding:"16px 16px 10px",background:"linear-gradient(180deg,rgba(99,102,241,.12),rgba(15,23,42,.3),transparent)",borderBottom:"1px solid rgba(99,102,241,.15)",flexShrink:0,position:"relative",overflow:"hidden"}},
@@ -774,6 +1141,7 @@ function App() {
           React.createElement("div",null,
             React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:10,color:"#818cf8",letterSpacing:3,textTransform:"uppercase",textShadow:"0 0 10px rgba(99,102,241,.3)"}},state.title),
             React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:24,fontWeight:900,lineHeight:1,textShadow:"0 0 20px rgba(99,102,241,.3)"}},`LV. ${state.level}`),
+            state.activeTitle&&React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:9,color:"#f59e0b",letterSpacing:2,marginTop:1}},TITLE_POOL.find(t=>t.id===state.activeTitle)?.icon+" "+TITLE_POOL.find(t=>t.id===state.activeTitle)?.name),
           ),
         ),
         React.createElement("div",{style:{display:"flex",alignItems:"center",gap:4,background:"rgba(251,146,60,.12)",border:"1px solid rgba(251,146,60,.3)",borderRadius:8,padding:"4px 10px",...(state.streak>5?{boxShadow:"0 0 12px rgba(251,146,60,.3)",animation:"goldGlow 3s infinite"}:{})}},
@@ -785,6 +1153,7 @@ function App() {
         React.createElement(Bar,{l:"XP",v:state.xp,mx:xpN,t:"xp",g:xpAnim}),
         React.createElement(Bar,{l:"HP",v:state.hp,mx:state.maxHp,t:"hp"}),
         React.createElement(Bar,{l:"MP",v:state.mp,mx:state.maxMp,t:"mp"}),
+        state.dailyBoss&&!state.dailyBoss.defeated&&React.createElement(Bar,{l:`👹 ${state.dailyBoss.name}`,v:state.dailyBoss.hp,mx:state.dailyBoss.maxHp,t:"boss"}),
       ),
       React.createElement("p",{style:{textAlign:"center",fontSize:10,color:"#64748b",marginTop:6,fontFamily:"'Orbitron'",position:"relative",zIndex:1}},
         `${doneQ.length}/${DAILY_QUESTS.length} done • ${failQ.length} failed • ${fmtH(h)} now`
@@ -796,8 +1165,8 @@ function App() {
 
     // Tabs
     React.createElement("div",{style:{display:"flex",flexShrink:0,background:"linear-gradient(180deg,rgba(15,15,30,.98),rgba(10,10,18,.95))",borderBottom:"1px solid rgba(99,102,241,.1)"}},
-      [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["stats","📊 Stats"],["settings","⚙️ Set"]].map(([k,l])=>
-        React.createElement("button",{key:k,onClick:()=>{setTab(k);setTabKey(n=>n+1);},style:{flex:1,padding:"11px 0",border:"none",background:"transparent",color:tab===k?"#a5b4fc":"#64748b",fontFamily:"'Rajdhani'",fontSize:13,fontWeight:tab===k?700:600,cursor:"pointer",borderBottom:tab===k?"3px solid":"3px solid transparent",borderImage:tab===k?"linear-gradient(90deg,#6366f1,#a855f7) 1":"none",position:"relative",transition:"all .2s ease",boxShadow:tab===k?"0 2px 10px rgba(99,102,241,.2)":"none"}},
+      [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["dungeon","🏰 Dungeon"],["stats","📊 Stats"],["settings","⚙️ Set"]].map(([k,l])=>
+        React.createElement("button",{key:k,onClick:()=>{setTab(k);setTabKey(n=>n+1);},style:{flex:1,padding:"9px 0",border:"none",background:"transparent",color:tab===k?"#a5b4fc":"#64748b",fontFamily:"'Rajdhani'",fontSize:11,fontWeight:tab===k?700:600,cursor:"pointer",borderBottom:tab===k?"3px solid":"3px solid transparent",borderImage:tab===k?"linear-gradient(90deg,#6366f1,#a855f7) 1":"none",position:"relative",transition:"all .2s ease",boxShadow:tab===k?"0 2px 10px rgba(99,102,241,.2)":"none"}},
           l, k==="stats"&&state.statPoints>0&&React.createElement("span",{style:{position:"absolute",top:3,right:"12%",background:"linear-gradient(135deg,#ef4444,#f87171)",color:"#fff",fontSize:8,fontFamily:"'Orbitron'",width:16,height:16,borderRadius:8,display:"inline-flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 8px rgba(239,68,68,.4)"}},state.statPoints)
         )
       )
@@ -805,10 +1174,11 @@ function App() {
 
     // Content
     React.createElement("div",{style:{flex:1,overflowY:"auto",padding:"10px 12px",paddingBottom:40}},
-      tab==="quests" && React.createElement(QuestsTab,{active:activeQ,done:doneQ,failed:failQ,upcoming:upQ,cq:state.customQuests,completed:state.completedToday,h,onDo:doQuest,onAdd:()=>setShowCM(true),onDel:delCQ,onSummon:summonQuest,summonUsed:state.summonUsedToday}),
+      tab==="quests" && React.createElement(QuestsTab,{active:activeQ,done:doneQ,failed:failQ,upcoming:upQ,cq:state.customQuests,completed:state.completedToday,h,onDo:doQuest,onAdd:()=>setShowCM(true),onDel:delCQ,onSummon:summonQuest,summonUsed:state.summonUsedToday,state,onChainStep:doChainStep,onPenalty:doPenaltyQuest}),
       tab==="workout" && React.createElement(WorkoutTab,{qs:WORKOUT_QUESTS,dn:state.completedToday,onDo:doQuest,lv:state.level,rk:wRank,sRk:setWRank}),
-      tab==="timers" && React.createElement(TimersTab,{ts:state.timerSettings,onTog:togTmr,onUpd:updTmr,nOn:state.notificationsEnabled,onEN:enNotif,cnt:state.timerCompletionsToday||0,onTst:tstTmr}),
-      tab==="stats" && React.createElement(StatsTab,{state,onAl:allocS,onRst:resetG}),
+      tab==="timers" && React.createElement(TimersTab,{ts:state.timerSettings,onTog:togTmr,onUpd:updTmr,nOn:state.notificationsEnabled,onEN:enNotif,cnt:state.timerCompletionsToday||0,onTst:tstTmr,onAddTimer:()=>setShowAddTimer(true),onDelTimer:delCustomTimer,pom:state.pomodoro,onStartPom:startPomodoro,onCancelPom:cancelPomodoro}),
+      tab==="dungeon" && React.createElement(DungeonTab,{state,onStep:doDungeonStep,onClaim:claimDungeonReward}),
+      tab==="stats" && React.createElement(StatsTab,{state,onAl:allocS,onRst:resetG,onShare:()=>setShowShareCard(true),onEquip:equipItem,onTitleSelect:()=>setShowTitleSelect(true)}),
       tab==="settings" && React.createElement(SettingsTab,{freqMode:state.questFreqMode,onFreqMode:m=>setState(p=>({...p,questFreqMode:m})),soundOn:state.soundEnabled,onSoundTog:()=>{setState(p=>{const v=!p.soundEnabled;SoundEngine.enabled=v;return{...p,soundEnabled:v};});}}),
     ),
   );
@@ -817,8 +1187,8 @@ function App() {
 /* ═══════════════════ BAR ═══════════════════ */
 function Bar({l,v,mx,t,g}) {
   const p=Math.min((v/mx)*100,100);
-  const bgs={xp:"linear-gradient(90deg,#6366f1,#818cf8,#a5b4fc)",hp:"linear-gradient(90deg,#dc2626,#ef4444,#f87171)",mp:"linear-gradient(90deg,#2563eb,#3b82f6,#60a5fa)"};
-  const glows={xp:"0 0 8px rgba(99,102,241,.5)",hp:"0 0 8px rgba(239,68,68,.5)",mp:"0 0 8px rgba(59,130,246,.5)"};
+  const bgs={xp:"linear-gradient(90deg,#6366f1,#818cf8,#a5b4fc)",hp:"linear-gradient(90deg,#dc2626,#ef4444,#f87171)",mp:"linear-gradient(90deg,#2563eb,#3b82f6,#60a5fa)",boss:"linear-gradient(90deg,#7c2d12,#dc2626,#f97316)"};
+  const glows={xp:"0 0 8px rgba(99,102,241,.5)",hp:"0 0 8px rgba(239,68,68,.5)",mp:"0 0 8px rgba(59,130,246,.5)",boss:"0 0 8px rgba(249,115,22,.5)"};
   const isHpDanger=t==="hp"&&(v/mx)<0.25;
   return React.createElement("div",{style:{marginBottom:5}},
     React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:9,fontFamily:"'Orbitron'",color:"#94a3b8",marginBottom:2}},React.createElement("span",null,l),React.createElement("span",null,`${v}/${mx}`)),
@@ -877,8 +1247,10 @@ function QuestCard({q,status,h,onDo,idx}) {
 }
 
 /* ═══════════════════ QUESTS TAB ═══════════════════ */
-function QuestsTab({active,done,failed,upcoming,cq,completed,h,onDo,onAdd,onDel,onSummon,summonUsed}) {
+function QuestsTab({active,done,failed,upcoming,cq,completed,h,onDo,onAdd,onDel,onSummon,summonUsed,state,onChainStep,onPenalty}) {
   return React.createElement("div",null,
+    state&&state.hp<state.maxHp*0.5&&state.penaltyQuests?.length>0&&React.createElement(PenaltyZoneSection,{quests:state.penaltyQuests,onDo:onPenalty}),
+    state&&state.dailyBoss&&React.createElement(DailyBossCard,{boss:state.dailyBoss}),
     React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}},
       React.createElement("p",{style:secS},"⚔️ Active Now"),
       React.createElement("div",{style:{display:"flex",gap:6}},
@@ -921,6 +1293,11 @@ function QuestsTab({active,done,failed,upcoming,cq,completed,h,onDo,onAdd,onDel,
       failed.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"failed",h,onDo})),
     ),
 
+    state&&React.createElement(React.Fragment,null,
+      React.createElement("p",{style:{...secS,marginTop:14}},"🔗 Quest Chains"),
+      QUEST_CHAINS.map(chain=>React.createElement(QuestChainCard,{key:chain.id,chain,progress:(state.chainProgress||{})[chain.id]||0,completed,onStep:stepIdx=>onChainStep(chain,stepIdx)})),
+    ),
+
     upcoming.length>0 && React.createElement(React.Fragment,null,
       React.createElement("p",{style:{...secS,marginTop:14}},`🔒 Upcoming (${upcoming.length})`),
       upcoming.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"upcoming",h,onDo})),
@@ -957,16 +1334,20 @@ function WorkoutTab({qs,dn,onDo,lv,rk,sRk}) {
 }
 
 /* ═══════════════════ TIMERS TAB ═══════════════════ */
-function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst}) {
+function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst,onAddTimer,onDelTimer,pom,onStartPom,onCancelPom}) {
   return React.createElement("div",null,
-    React.createElement("p",{style:secS},"⏰ Timed Reminders"),
+    React.createElement(PomodoroSection,{pom,onStart:onStartPom,onCancel:onCancelPom}),
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}},
+      React.createElement("p",{style:secS},"⏰ Timed Reminders"),
+      React.createElement("button",{onClick:onAddTimer,style:{padding:"4px 12px",borderRadius:8,border:"1px solid rgba(129,140,248,.3)",background:"rgba(99,102,241,.12)",color:"#a5b4fc",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"+ Add"),
+    ),
     !nOn ? React.createElement("button",{onClick:onEN,style:{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"12px 14px",marginBottom:10,borderRadius:12,background:"linear-gradient(135deg,rgba(99,102,241,.15),rgba(168,85,247,.15))",border:"1px solid rgba(129,140,248,.25)",cursor:"pointer",textAlign:"left",color:"#e2e8f0",fontFamily:"'Rajdhani'",WebkitAppearance:"none",outline:"none"}},
       React.createElement("span",{style:{fontSize:18}},"🔔"),
       React.createElement("div",null,React.createElement("p",{style:{fontSize:13,fontWeight:700,color:"#c7d2fe"}},"Enable Notifications"),React.createElement("p",{style:{fontSize:10,color:"#94a3b8"}},"Push to phone & watch")),
     ) :
     React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",marginBottom:10,borderRadius:8,background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)"}},React.createElement("span",null,"✅"),React.createElement("p",{style:{fontSize:12,color:"#4ade80"}},"Notifications Active")),
     React.createElement("p",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#64748b",marginBottom:10}},`${cnt} reminders today`),
-    ts.map(t=>React.createElement("div",{key:t.id,style:{display:"flex",alignItems:"center",gap:10,padding:13,marginBottom:7,borderRadius:12,background:"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",border:`1px solid ${t.enabled?"rgba(99,102,241,.2)":"rgba(99,102,241,.08)"}`,boxShadow:t.enabled?"0 0 8px rgba(99,102,241,.08)":"none",transition:"all .3s ease"}},
+    ts.map(t=>React.createElement("div",{key:t.id,style:{display:"flex",alignItems:"center",gap:10,padding:13,marginBottom:7,borderRadius:12,background:"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",border:`1px solid ${t.enabled?"rgba(99,102,241,.2)":"rgba(99,102,241,.08)"}`,boxShadow:t.enabled?"0 0 8px rgba(99,102,241,.08)":"none",transition:"all .3s ease",position:"relative"}},
       React.createElement("span",{style:{fontSize:22}},t.icon),
       React.createElement("div",{style:{flex:1,minWidth:0}},
         React.createElement("p",{style:{fontSize:14,fontWeight:700,color:t.enabled?"#e2e8f0":"#64748b"}},t.name),
@@ -978,15 +1359,18 @@ function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst}) {
           React.createElement("button",{onClick:()=>onTst(t),style:{padding:"1px 6px",borderRadius:4,border:"1px solid rgba(129,140,248,.25)",background:"rgba(99,102,241,.1)",color:"#a5b4fc",fontSize:10,cursor:"pointer",fontFamily:"'Orbitron'"}},"▶"),
         ),
       ),
-      React.createElement("button",{onClick:()=>onTog(t.id),style:{width:40,height:23,borderRadius:12,border:"none",cursor:"pointer",display:"flex",alignItems:"center",padding:2,background:t.enabled?"linear-gradient(135deg,#6366f1,#818cf8)":"rgba(100,116,139,.3)",justifyContent:t.enabled?"flex-end":"flex-start",flexShrink:0,boxShadow:t.enabled?"0 0 10px rgba(99,102,241,.4)":"none",transition:"all .3s ease"}},
-        React.createElement("div",{style:{width:19,height:19,borderRadius:10,background:"#fff",boxShadow:t.enabled?"0 0 6px rgba(255,255,255,.3)":"none",transition:"all .2s ease"}})
+      React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:4,alignItems:"center"}},
+        React.createElement("button",{onClick:()=>onTog(t.id),style:{width:40,height:23,borderRadius:12,border:"none",cursor:"pointer",display:"flex",alignItems:"center",padding:2,background:t.enabled?"linear-gradient(135deg,#6366f1,#818cf8)":"rgba(100,116,139,.3)",justifyContent:t.enabled?"flex-end":"flex-start",flexShrink:0,boxShadow:t.enabled?"0 0 10px rgba(99,102,241,.4)":"none",transition:"all .3s ease"}},
+          React.createElement("div",{style:{width:19,height:19,borderRadius:10,background:"#fff",boxShadow:t.enabled?"0 0 6px rgba(255,255,255,.3)":"none",transition:"all .2s ease"}})
+        ),
+        t.id.startsWith("ct_")&&React.createElement("button",{onClick:()=>onDelTimer(t.id),style:{width:22,height:22,borderRadius:5,border:"none",background:"rgba(239,68,68,.2)",color:"#f87171",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}},"✕"),
       ),
     )),
   );
 }
 
 /* ═══════════════════ STATS TAB ═══════════════════ */
-function StatsTab({state,onAl,onRst}) {
+function StatsTab({state,onAl,onRst,onShare,onEquip,onTitleSelect}) {
   const mx=Math.max(...Object.values(state.stats),10);
   const cl={STR:"#ef4444",VIT:"#22c55e",AGI:"#3b82f6",INT:"#a855f7",CHA:"#f59e0b"};
   const gl={STR:"0 0 8px rgba(239,68,68,.4)",VIT:"0 0 8px rgba(34,197,94,.4)",AGI:"0 0 8px rgba(59,130,246,.4)",INT:"0 0 8px rgba(168,85,247,.4)",CHA:"0 0 8px rgba(245,158,11,.4)"};
@@ -1074,7 +1458,15 @@ function StatsTab({state,onAl,onRst}) {
       last30.map((d,i)=>React.createElement("div",{key:i,title:d.date,style:{width:"100%",aspectRatio:"1",borderRadius:4,background:d.active?"#22c55e":"rgba(100,116,139,.15)",boxShadow:d.active?"0 0 6px rgba(34,197,94,.3)":"none",border:d.date===today?"2px solid #818cf8":"1px solid transparent"}}))
     ),
 
-    React.createElement("button",{onClick:onRst,style:{width:"100%",padding:10,borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'",marginTop:8}},"Reset Progress"),
+    React.createElement(TitlesPanel,{state,onSelect:onTitleSelect}),
+    React.createElement(ShadowArmySection,{state}),
+    React.createElement(EquipmentSection,{state,onEquip}),
+    React.createElement(HallOfRecords,{records:state.records}),
+
+    React.createElement("div",{style:{display:"flex",gap:8,marginTop:8}},
+      React.createElement("button",{onClick:onShare,style:{flex:1,padding:10,borderRadius:8,border:"1px solid rgba(168,85,247,.3)",background:"rgba(168,85,247,.12)",color:"#c4b5fd",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"}},"📤 Share Progress"),
+      React.createElement("button",{onClick:onRst,style:{flex:1,padding:10,borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"}},"Reset Progress"),
+    ),
   );
 }
 
@@ -1174,6 +1566,334 @@ function SettingsTab({freqMode,onFreqMode,soundOn,onSoundTog}) {
         "No repeats — recent quests are filtered out",
       ].map((t,i)=>React.createElement("p",{key:i,style:{fontSize:12,color:"#64748b",marginBottom:4,paddingLeft:8,borderLeft:"2px solid rgba(99,102,241,.2)"}},t)),
     ),
+  );
+}
+
+/* ═══════════════════ DAILY BOSS CARD ═══════════════════ */
+function DailyBossCard({boss}) {
+  if(!boss) return null;
+  const pct=Math.max((boss.hp/boss.maxHp)*100,0);
+  const isLow=pct<30;
+  return React.createElement("div",{style:{padding:"12px 14px",marginBottom:10,borderRadius:12,background:boss.defeated?"linear-gradient(160deg,rgba(20,60,20,.5),rgba(10,30,10,.6))":"linear-gradient(160deg,rgba(60,10,10,.5),rgba(30,5,5,.6))",border:`1px solid ${boss.defeated?"rgba(34,197,94,.3)":"rgba(239,68,68,.3)"}`,boxShadow:boss.defeated?"0 0 12px rgba(34,197,94,.15)":"0 0 12px rgba(239,68,68,.15)",animation:isLow&&!boss.defeated?"dangerPulse 1.5s infinite":"none"}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        React.createElement("span",{style:{fontSize:28}},boss.icon),
+        React.createElement("div",null,
+          React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:10,color:boss.defeated?"#22c55e":"#ef4444",letterSpacing:2}},boss.defeated?"DEFEATED":"DAILY BOSS"),
+          React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:16,fontWeight:700,color:"#e2e8f0"}},boss.name),
+        ),
+      ),
+      React.createElement("div",{style:{textAlign:"right"}},
+        React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:11,color:boss.defeated?"#22c55e":"#ef4444",fontWeight:700}},boss.defeated?`+${boss.xpReward} XP!`:`${boss.hp}/${boss.maxHp} HP`),
+        React.createElement("p",{style:{fontSize:10,color:"#64748b"}},`Reward: ${boss.xpReward} XP`),
+      ),
+    ),
+    !boss.defeated&&React.createElement("div",{style:{height:8,borderRadius:4,background:"rgba(30,41,59,.8)",overflow:"hidden"}},
+      React.createElement("div",{style:{height:"100%",borderRadius:4,width:`${pct}%`,background:isLow?"linear-gradient(90deg,#7c2d12,#ef4444)":"linear-gradient(90deg,#dc2626,#f97316)",transition:"width .5s",boxShadow:"0 0 8px rgba(239,68,68,.4)"}})
+    ),
+  );
+}
+
+/* ═══════════════════ PENALTY ZONE ═══════════════════ */
+function PenaltyZoneSection({quests,onDo}) {
+  if(!quests||quests.length===0) return null;
+  return React.createElement("div",{style:{padding:"12px 14px",marginBottom:10,borderRadius:12,background:"linear-gradient(160deg,rgba(60,5,5,.6),rgba(40,5,5,.7))",border:"1px solid rgba(239,68,68,.4)",animation:"dangerPulse 2s infinite"}},
+    React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#f87171",marginBottom:8,letterSpacing:1}},"⚠️ PENALTY ZONE — HP CRITICAL"),
+    React.createElement("p",{style:{fontSize:11,color:"#94a3b8",marginBottom:10}},"Complete recovery quests to restore HP"),
+    quests.map(pq=>React.createElement("button",{key:pq.id,onClick:()=>onDo(pq),style:{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"9px 12px",marginBottom:6,borderRadius:9,background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.25)",cursor:"pointer",textAlign:"left",color:"#e2e8f0",fontFamily:"'Rajdhani'",WebkitAppearance:"none",outline:"none"}},
+      React.createElement("span",{style:{fontSize:20}},pq.icon),
+      React.createElement("div",{style:{flex:1}},
+        React.createElement("p",{style:{fontSize:13,fontWeight:700}},pq.name),
+        React.createElement("p",{style:{fontSize:11,color:"#94a3b8"}},pq.desc),
+      ),
+      React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#4ade80",fontWeight:700}},`+${pq.hpRestore}HP`),
+    )),
+  );
+}
+
+/* ═══════════════════ QUEST CHAIN CARD ═══════════════════ */
+function QuestChainCard({chain,progress,completed,onStep}) {
+  const done=progress>=chain.steps.length;
+  const curStep=chain.steps[progress];
+  const curDone=curStep&&completed.includes(curStep.id);
+  return React.createElement("div",{style:{padding:"12px 14px",marginBottom:8,borderRadius:12,background:done?"linear-gradient(160deg,rgba(20,60,20,.4),rgba(10,30,10,.5))":"linear-gradient(160deg,rgba(20,20,60,.4),rgba(10,10,40,.5))",border:`1px solid ${done?"rgba(34,197,94,.3)":"rgba(99,102,241,.2)"}`}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6}},
+        React.createElement("span",{style:{fontSize:18}},chain.icon),
+        React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:done?"#22c55e":"#c7d2fe"}},chain.name),
+      ),
+      React.createElement("div",{style:{display:"flex",gap:4}},
+        chain.steps.map((_,i)=>React.createElement("div",{key:i,style:{width:8,height:8,borderRadius:4,background:i<progress?"#22c55e":i===progress?"#818cf8":"rgba(100,116,139,.3)"}})),
+      ),
+    ),
+    done
+      ? React.createElement("p",{style:{fontSize:11,color:"#22c55e",fontFamily:"'Orbitron'"}},`✓ Complete! +${chain.bonusXp} bonus XP earned`)
+      : React.createElement("button",{onClick:()=>onStep(progress),disabled:curDone,style:{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"8px 10px",borderRadius:8,background:curDone?"rgba(34,197,94,.05)":"rgba(99,102,241,.1)",border:`1px solid ${curDone?"rgba(34,197,94,.2)":"rgba(99,102,241,.2)"}`,cursor:curDone?"default":"pointer",textAlign:"left",color:"#e2e8f0",fontFamily:"'Rajdhani'",WebkitAppearance:"none",outline:"none",opacity:curDone?.6:1}},
+        React.createElement("span",{style:{fontSize:18}},curStep?.icon),
+        React.createElement("div",{style:{flex:1}},
+          React.createElement("p",{style:{fontSize:13,fontWeight:700}},`Step ${progress+1}: ${curStep?.name}`),
+          React.createElement("p",{style:{fontSize:11,color:"#94a3b8"}},curStep?.desc),
+        ),
+        curDone?React.createElement("span",{style:{color:"#22c55e"}},"✓"):React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700}},`+${curStep?.xp}`),
+      ),
+  );
+}
+
+/* ═══════════════════ DUNGEON TAB ═══════════════════ */
+function DungeonTab({state,onStep,onClaim}) {
+  const d=state.weeklyDungeon;
+  if(!d) return React.createElement("p",{style:{textAlign:"center",color:"#64748b",marginTop:40}},"Loading dungeon...");
+  return React.createElement("div",null,
+    React.createElement("div",{style:{padding:"16px",marginBottom:12,borderRadius:14,background:"linear-gradient(160deg,rgba(40,10,60,.6),rgba(20,5,40,.7))",border:"1px solid rgba(168,85,247,.3)",textAlign:"center"}},
+      React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:10,letterSpacing:4,color:"#a855f7",marginBottom:4}},"WEEKLY DUNGEON"),
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:22,color:"#e2e8f0",textShadow:"0 0 20px rgba(168,85,247,.5)"}},d.dungeonName),
+      React.createElement("p",{style:{fontSize:11,color:"#64748b",marginTop:4}},`${d.completedSteps.length}/${d.quests.length} steps cleared`),
+      React.createElement("div",{style:{display:"flex",justifyContent:"center",gap:8,marginTop:8}},
+        d.quests.map((_,i)=>React.createElement("div",{key:i,style:{width:12,height:12,borderRadius:6,background:d.completedSteps.includes(i)?"#22c55e":"rgba(100,116,139,.3)",boxShadow:d.completedSteps.includes(i)?"0 0 6px rgba(34,197,94,.4)":"none"}}))
+      ),
+    ),
+    d.cleared&&!d.rewardClaimed&&React.createElement("button",{onClick:onClaim,style:{width:"100%",padding:"14px",marginBottom:12,borderRadius:12,border:"none",background:"linear-gradient(135deg,#d97706,#f59e0b)",color:"#000",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"'Cinzel',serif",boxShadow:"0 0 20px rgba(245,158,11,.4)",animation:"goldGlow 2s infinite"}},"🏆 Claim Dungeon Reward (+500 XP)"),
+    d.cleared&&d.rewardClaimed&&React.createElement("div",{style:{padding:"12px",marginBottom:12,borderRadius:10,background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)",textAlign:"center",color:"#4ade80",fontFamily:"'Orbitron'",fontSize:12}},"✓ Dungeon Cleared — Reward Claimed"),
+    React.createElement("p",{style:{...secS,marginTop:4}},"⚔️ Dungeon Challenges"),
+    d.quests.map((q,i)=>{
+      const done=d.completedSteps.includes(i);
+      const rc=RC[q.rank]||RC.E;
+      return React.createElement("button",{key:i,onClick:()=>!done&&onStep(i),disabled:done,
+        style:{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 14px",marginBottom:7,borderRadius:12,background:done?"rgba(34,197,94,.05)":"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",border:`1px solid ${done?"rgba(34,197,94,.2)":"rgba(168,85,247,.15)"}`,borderLeft:`3px solid ${rc}`,opacity:done?.55:1,cursor:done?"default":"pointer",textAlign:"left",color:"#e2e8f0",fontFamily:"'Rajdhani'",WebkitAppearance:"none",outline:"none"}},
+        React.createElement("span",{style:{fontSize:22,width:32,textAlign:"center"}},done?"✓":q.icon),
+        React.createElement("div",{style:{flex:1}},
+          React.createElement("p",{style:{fontSize:14,fontWeight:700}},q.name,React.createElement("span",{style:{color:rc,fontSize:10,fontFamily:"Orbitron"}},` (${q.rank})`)),
+          React.createElement("p",{style:{fontSize:11,color:"#94a3b8"}},q.desc),
+        ),
+        done?React.createElement("span",{style:{color:"#22c55e",fontSize:18}},"✓"):React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700}},`+${q.xp}`),
+      );
+    }),
+  );
+}
+
+/* ═══════════════════ POMODORO SECTION ═══════════════════ */
+function PomodoroSection({pom,onStart,onCancel}) {
+  const [selMin,setSelMin]=useState(25);
+  const mins=pom?.active?Math.floor(pom.seconds/60):0;
+  const secs=pom?.active?pom.seconds%60:0;
+  const pct=pom?.active&&pom.total>0?(pom.seconds/pom.total)*100:100;
+  return React.createElement("div",{style:{padding:"14px",marginBottom:12,borderRadius:12,background:"linear-gradient(160deg,rgba(20,20,50,.5),rgba(10,10,30,.6))",border:"1px solid rgba(99,102,241,.2)"}},
+    React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:14,color:"#c7d2fe",marginBottom:10}},"🍅 Focus Mode"),
+    pom?.active
+      ? React.createElement("div",{style:{textAlign:"center"}},
+          React.createElement("div",{style:{position:"relative",width:100,height:100,margin:"0 auto 12px",display:"flex",alignItems:"center",justifyContent:"center"}},
+            React.createElement("svg",{width:100,height:100,style:{position:"absolute",top:0,left:0,transform:"rotate(-90deg)"}},
+              React.createElement("circle",{cx:50,cy:50,r:44,fill:"none",stroke:"rgba(99,102,241,.15)",strokeWidth:8}),
+              React.createElement("circle",{cx:50,cy:50,r:44,fill:"none",stroke:"#6366f1",strokeWidth:8,strokeDasharray:`${2*Math.PI*44}`,strokeDashoffset:`${2*Math.PI*44*(1-pct/100)}`,strokeLinecap:"round",transition:"stroke-dashoffset 1s linear"}),
+            ),
+            React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:20,fontWeight:700,color:"#e2e8f0"}},`${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`),
+          ),
+          React.createElement("button",{onClick:onCancel,style:{padding:"8px 24px",borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.1)",color:"#f87171",fontSize:13,cursor:"pointer",fontFamily:"'Rajdhani'",fontWeight:700}},"Cancel"),
+        )
+      : React.createElement("div",null,
+          React.createElement("div",{style:{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}},
+            POMODORO_OPTS.map(o=>React.createElement("button",{key:o.min,onClick:()=>setSelMin(o.min),style:{padding:"6px 12px",borderRadius:7,border:`1.5px solid ${selMin===o.min?"#6366f1":"rgba(99,102,241,.2)"}`,background:selMin===o.min?"rgba(99,102,241,.2)":"rgba(30,41,59,.4)",color:selMin===o.min?"#a5b4fc":"#64748b",fontSize:12,fontFamily:"'Orbitron'",cursor:"pointer",fontWeight:700}},`${o.min}m · +${o.xp}XP`))
+          ),
+          React.createElement("button",{onClick:()=>onStart(selMin),style:{width:"100%",padding:"10px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#6366f1,#818cf8)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"▶ Start Focus"),
+          React.createElement("p",{style:{fontSize:10,color:"#64748b",textAlign:"center",marginTop:6,fontFamily:"'Orbitron'"}},`Completed: ${pom?.completed||0} sessions`),
+        ),
+  );
+}
+
+/* ═══════════════════ ADD TIMER MODAL ═══════════════════ */
+function AddTimerModal({onAdd,onClose}) {
+  const [n,sN]=useState(""); const [ic,sI]=useState("⏰"); const [min,sM]=useState(30); const [xp,sX]=useState(10); const [st,sS]=useState("VIT");
+  return React.createElement("div",{style:ov,onClick:onClose},
+    React.createElement("div",{style:{width:"100%",maxWidth:360,background:"linear-gradient(160deg,#1a1a2e,#16213e)",border:"1px solid rgba(99,102,241,.25)",borderRadius:16,padding:"20px 18px",animation:"popIn .3s ease"},onClick:e=>e.stopPropagation()},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:18,color:"#c7d2fe",marginBottom:12,textAlign:"center"}},"⏰ Add Timer"),
+      React.createElement("label",{style:mlS},"Name"),
+      React.createElement("input",{value:n,onChange:e=>sN(e.target.value),placeholder:"e.g. Water Break",style:miS,maxLength:30}),
+      React.createElement("label",{style:mlS},"Icon"),
+      React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}},
+        CI.map(i=>React.createElement("button",{key:i,onClick:()=>sI(i),style:{width:32,height:32,borderRadius:6,border:`1px solid ${ic===i?"#818cf8":"rgba(99,102,241,.15)"}`,background:ic===i?"rgba(99,102,241,.2)":"rgba(30,41,59,.4)",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}},i))
+      ),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("div",{style:{flex:1}},React.createElement("label",{style:mlS},"Every"),React.createElement("select",{value:min,onChange:e=>sM(+e.target.value),style:msS},[15,20,30,40,45,60,90,120].map(v=>React.createElement("option",{key:v,value:v},v<60?`${v}m`:`${v/60}h`)))),
+        React.createElement("div",{style:{flex:1}},React.createElement("label",{style:mlS},"XP"),React.createElement("select",{value:xp,onChange:e=>sX(+e.target.value),style:msS},[5,8,10,12,15,20,25,30].map(v=>React.createElement("option",{key:v,value:v},v)))),
+        React.createElement("div",{style:{flex:1}},React.createElement("label",{style:mlS},"Stat"),React.createElement("select",{value:st,onChange:e=>sS(e.target.value),style:msS},SN.map(s=>React.createElement("option",{key:s,value:s},s)))),
+      ),
+      React.createElement("div",{style:{display:"flex",gap:8,marginTop:14}},
+        React.createElement("button",{onClick:()=>{if(n.trim())onAdd({name:n.trim(),icon:ic,intervalMin:min,xp,stat:st,desc:`${ic} ${n.trim()}`});},disabled:!n.trim(),style:{...bpS,flex:1,opacity:n.trim()?1:.4}},"Add Timer"),
+        React.createElement("button",{onClick:onClose,style:{...bgS,flex:1}},"Cancel"),
+      ),
+    )
+  );
+}
+
+/* ═══════════════════ SHADOW ARMY SECTION ═══════════════════ */
+function ShadowArmySection({state}) {
+  return React.createElement("div",{style:{marginBottom:18}},
+    React.createElement("p",{style:secS},"👥 Shadow Army"),
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}},
+      SHADOWS.map(sh=>{
+        const unlocked=(state.shadowArmy||[]).includes(sh.id);
+        return React.createElement("div",{key:sh.id,style:{display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 4px",borderRadius:10,background:unlocked?"linear-gradient(160deg,rgba(99,102,241,.15),rgba(168,85,247,.1))":"rgba(30,41,59,.3)",border:`1px solid ${unlocked?"rgba(168,85,247,.4)":"rgba(99,102,241,.08)"}`,boxShadow:unlocked?"0 0 12px rgba(168,85,247,.2)":"none"}},
+          React.createElement("span",{style:{fontSize:24,marginBottom:3,filter:unlocked?"none":"grayscale(100%) opacity(0.3)"}},sh.icon),
+          React.createElement("p",{style:{fontSize:9,fontFamily:"'Orbitron'",color:unlocked?"#a5b4fc":"#475569",textAlign:"center",lineHeight:1.2,fontWeight:700}},sh.name),
+          unlocked
+            ? React.createElement("p",{style:{fontSize:8,color:"#64748b",textAlign:"center",marginTop:2}},`+${sh.xpPerHr} ${sh.stat}/hr`)
+            : React.createElement("p",{style:{fontSize:8,color:"#374151",textAlign:"center",marginTop:2}},sh.reqLevel>0?`Lv${sh.reqLevel}`:`${sh.reqStreak}d streak`),
+        );
+      })
+    ),
+  );
+}
+
+/* ═══════════════════ EQUIPMENT SECTION ═══════════════════ */
+function EquipmentSection({state,onEquip}) {
+  const slots=["weapon","armor","accessory"];
+  const slotIcons={weapon:"⚔️",armor:"🛡️",accessory:"💍"};
+  return React.createElement("div",{style:{marginBottom:18}},
+    React.createElement("p",{style:secS},"⚔️ Equipment"),
+    slots.map(slot=>{
+      const equippedId=state.equipment?.[slot];
+      const equippedItem=equippedId?EQUIPMENT_ITEMS.find(i=>i.id===equippedId):null;
+      const available=EQUIPMENT_ITEMS.filter(i=>i.slot===slot&&(state.unlockedItems||[]).includes(i.id));
+      return React.createElement("div",{key:slot,style:{marginBottom:10}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:10,background:"rgba(30,41,59,.4)",border:"1px solid rgba(99,102,241,.15)",marginBottom:5}},
+          React.createElement("span",{style:{fontSize:18}},slotIcons[slot]),
+          React.createElement("div",{style:{flex:1}},
+            React.createElement("p",{style:{fontSize:12,fontFamily:"'Orbitron'",color:"#64748b",textTransform:"capitalize"}},slot),
+            React.createElement("p",{style:{fontSize:13,color:"#e2e8f0",fontWeight:700}},equippedItem?`${equippedItem.icon} ${equippedItem.name}`:"— Empty —"),
+          ),
+          equippedItem&&React.createElement("span",{style:{fontSize:10,fontFamily:"'Orbitron'",color:"#a855f7",background:"rgba(168,85,247,.1)",padding:"2px 6px",borderRadius:5}},equippedItem.desc),
+        ),
+        available.length>0&&React.createElement("div",{style:{display:"flex",gap:5,flexWrap:"wrap",paddingLeft:8}},
+          available.map(item=>React.createElement("button",{key:item.id,onClick:()=>onEquip(item.id),style:{padding:"4px 8px",borderRadius:6,border:`1px solid ${equippedId===item.id?"rgba(168,85,247,.5)":"rgba(99,102,241,.2)"}`,background:equippedId===item.id?"rgba(168,85,247,.2)":"rgba(30,41,59,.4)",color:equippedId===item.id?"#c4b5fd":"#94a3b8",fontSize:11,cursor:"pointer",fontFamily:"'Rajdhani'",fontWeight:equippedId===item.id?700:400}},`${item.icon} ${item.name}`))
+        ),
+        available.length===0&&React.createElement("p",{style:{fontSize:11,color:"#374151",paddingLeft:8,fontFamily:"'Orbitron'"}},"No items unlocked yet"),
+      );
+    })
+  );
+}
+
+/* ═══════════════════ TITLES PANEL ═══════════════════ */
+function TitlesPanel({state,onSelect}) {
+  const earned=state.earnedTitles||[];
+  const active=state.activeTitle;
+  const activeT=TITLE_POOL.find(t=>t.id===active)||TITLE_POOL.find(t=>t.id==="t_beginner");
+  return React.createElement("div",{style:{marginBottom:18}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+      React.createElement("p",{style:secS},"🏷️ Titles"),
+      React.createElement("button",{onClick:onSelect,style:{padding:"4px 12px",borderRadius:7,border:"1px solid rgba(245,158,11,.3)",background:"rgba(245,158,11,.1)",color:"#fbbf24",fontSize:12,cursor:"pointer",fontFamily:"'Rajdhani'",fontWeight:700}},"Change"),
+    ),
+    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:"linear-gradient(135deg,rgba(30,20,5,.5),rgba(20,15,5,.6))",border:"1px solid rgba(245,158,11,.25)",marginBottom:8}},
+      React.createElement("span",{style:{fontSize:24}},activeT?.icon),
+      React.createElement("div",null,
+        React.createElement("p",{style:{fontSize:10,color:"#92400e",fontFamily:"'Orbitron'",letterSpacing:2}},"ACTIVE TITLE"),
+        React.createElement("p",{style:{fontSize:15,fontWeight:700,color:"#fbbf24",fontFamily:"'Cinzel',serif"}},activeT?.name),
+      ),
+    ),
+    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:5}},
+      TITLE_POOL.map(t=>{
+        const e=earned.includes(t.id);
+        return React.createElement("div",{key:t.id,style:{padding:"3px 8px",borderRadius:6,background:e?"rgba(245,158,11,.1)":"rgba(30,41,59,.3)",border:`1px solid ${e?"rgba(245,158,11,.3)":"rgba(99,102,241,.08)"}`,opacity:e?1:.35}},
+          React.createElement("span",{style:{fontSize:10,color:e?"#fbbf24":"#475569",fontFamily:"'Rajdhani'"}},`${t.icon} ${t.name}`),
+        );
+      })
+    ),
+  );
+}
+
+/* ═══════════════════ TITLES SELECT MODAL ═══════════════════ */
+function TitlesSelectModal({state,onSelect,onClose}) {
+  const earned=state.earnedTitles||[];
+  return React.createElement("div",{style:ov,onClick:onClose},
+    React.createElement("div",{style:{width:"100%",maxWidth:360,background:"linear-gradient(160deg,#1a1a2e,#16213e)",border:"1px solid rgba(245,158,11,.25)",borderRadius:16,padding:"20px 18px",animation:"popIn .3s ease",maxHeight:"70vh",overflowY:"auto"},onClick:e=>e.stopPropagation()},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:18,color:"#fbbf24",marginBottom:12,textAlign:"center"}},"🏷️ Choose Title"),
+      TITLE_POOL.filter(t=>earned.includes(t.id)).map(t=>React.createElement("button",{key:t.id,onClick:()=>onSelect(t.id),style:{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",marginBottom:7,borderRadius:10,background:state.activeTitle===t.id?"rgba(245,158,11,.15)":"rgba(30,41,59,.4)",border:`1px solid ${state.activeTitle===t.id?"rgba(245,158,11,.4)":"rgba(99,102,241,.15)"}`,cursor:"pointer",textAlign:"left",color:"#e2e8f0",fontFamily:"'Rajdhani'",WebkitAppearance:"none",outline:"none"}},
+        React.createElement("span",{style:{fontSize:22}},t.icon),
+        React.createElement("p",{style:{fontSize:15,fontWeight:700,color:state.activeTitle===t.id?"#fbbf24":"#c7d2fe"}},t.name),
+        state.activeTitle===t.id&&React.createElement("span",{style:{color:"#f59e0b",fontSize:18,marginLeft:"auto"}},"✓"),
+      )),
+    )
+  );
+}
+
+/* ═══════════════════ HALL OF RECORDS ═══════════════════ */
+function HallOfRecords({records}) {
+  if(!records) return null;
+  const items=[
+    ["🔥","Best Streak",`${records.bestStreak} days`],
+    ["⭐","Best Week XP",records.bestWeekXp.toLocaleString()],
+    ["📅","Best Day Quests",records.bestDayQuests],
+    ["✅","Total Quests",records.totalQuestsCompleted],
+    ["🏋️","Total Workouts",records.totalWorkouts],
+  ];
+  return React.createElement("div",{style:{marginBottom:18}},
+    React.createElement("p",{style:secS},"🏆 Personal Records"),
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+      items.map(([icon,label,val])=>React.createElement("div",{key:label,style:{padding:"12px 10px",borderRadius:10,background:"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",border:"1px solid rgba(99,102,241,.12)",textAlign:"center"}},
+        React.createElement("p",{style:{fontSize:20,marginBottom:4}},icon),
+        React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:16,fontWeight:700,color:"#c7d2fe"}},val),
+        React.createElement("p",{style:{fontSize:10,color:"#64748b"}},label),
+      ))
+    ),
+  );
+}
+
+/* ═══════════════════ SHARE CARD MODAL ═══════════════════ */
+function ShareCardModal({state,onClose}) {
+  const canRef=useRef(null);
+  useEffect(()=>{
+    const canvas=canRef.current;
+    if(!canvas) return;
+    const ctx=canvas.getContext("2d");
+    const W=480,H=320;
+    canvas.width=W;canvas.height=H;
+    // Background
+    const grad=ctx.createLinearGradient(0,0,W,H);
+    grad.addColorStop(0,"#0a0a12");grad.addColorStop(1,"#111327");
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    // Border
+    ctx.strokeStyle="rgba(99,102,241,.5)";ctx.lineWidth=2;ctx.strokeRect(1,1,W-2,H-2);
+    // Title
+    ctx.fillStyle="#818cf8";ctx.font="bold 12px 'Arial'";ctx.textAlign="center";
+    ctx.fillText("SOLO LEVELING LIFE",W/2,30);
+    // Level
+    ctx.fillStyle="#e2e8f0";ctx.font="bold 48px 'Arial'";
+    ctx.fillText(`LV.${state.level}`,W/2,90);
+    // Title text
+    ctx.fillStyle="#a5b4fc";ctx.font="16px 'Arial'";
+    ctx.fillText(state.title,W/2,115);
+    // Stats
+    const stats=Object.entries(state.stats);
+    const colors={STR:"#ef4444",VIT:"#22c55e",AGI:"#3b82f6",INT:"#a855f7",CHA:"#f59e0b"};
+    stats.forEach(([k,v],i)=>{
+      const x=40+i*(W-80)/4.5,y=160;
+      ctx.fillStyle=colors[k]||"#818cf8";ctx.font="bold 22px 'Arial'";ctx.textAlign="center";
+      ctx.fillText(v,x,y);
+      ctx.fillStyle="#64748b";ctx.font="11px 'Arial'";
+      ctx.fillText(k,x,y+18);
+    });
+    // Bar for XP
+    ctx.fillStyle="rgba(255,255,255,.08)";ctx.fillRect(40,190,W-80,12);
+    const pct=(state.xp/(LEVEL_XP[Math.min(state.level,LEVEL_XP.length-1)]||1));
+    ctx.fillStyle="#6366f1";ctx.fillRect(40,190,Math.min((W-80)*pct,W-80),12);
+    // Bottom line
+    ctx.fillStyle="#475569";ctx.font="12px 'Arial'";ctx.textAlign="center";
+    ctx.fillText(`Streak: ${state.streak}d  •  Total XP: ${state.totalXp.toLocaleString()}  •  HP: ${state.hp}/${state.maxHp}`,W/2,240);
+    ctx.fillStyle="#374151";ctx.font="10px 'Arial'";
+    ctx.fillText("Solo Leveling Life PWA",W/2,270);
+  },[]);
+  const download=()=>{
+    const a=document.createElement("a");a.download="sl-life-card.png";
+    a.href=canRef.current.toDataURL("image/png");a.click();
+  };
+  return React.createElement("div",{style:ov,onClick:onClose},
+    React.createElement("div",{style:{background:"#0a0a12",border:"1px solid rgba(168,85,247,.3)",borderRadius:16,padding:"16px",animation:"popIn .3s ease",maxWidth:520},onClick:e=>e.stopPropagation()},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:16,color:"#c7d2fe",marginBottom:12,textAlign:"center"}},"📤 Share Card"),
+      React.createElement("canvas",{ref:canRef,style:{borderRadius:8,width:"100%",maxWidth:480,display:"block"}}),
+      React.createElement("div",{style:{display:"flex",gap:8,marginTop:12}},
+        React.createElement("button",{onClick:download,style:{...bpS,flex:1,fontSize:14}},"⬇ Download PNG"),
+        React.createElement("button",{onClick:onClose,style:{...bgS,flex:1}},"Close"),
+      ),
+    )
   );
 }
 
