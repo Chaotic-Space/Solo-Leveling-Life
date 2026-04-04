@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sl-life-v3';
+const CACHE_NAME = 'sl-life-v4';
 const URLS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -27,6 +27,7 @@ function scheduleTimer(t) {
       body: `${t.desc} · +${t.xp} XP`,
       tag: t.id,
       renotify: true,
+      vibrate: [200, 100, 200],
       icon: './icons/icon-192.png',
       badge: './icons/icon-192.png',
     });

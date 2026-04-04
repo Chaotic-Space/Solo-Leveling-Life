@@ -16,14 +16,21 @@
 html,body,#root{height:100%;overflow:hidden}
 body{font-family:'Rajdhani',sans-serif;background:#0a0a12;color:#e2e8f0;overscroll-behavior:none}
 input,select,textarea{font-family:'Rajdhani',sans-serif;-webkit-user-select:text;user-select:text}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#334;border-radius:4px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:rgba(15,15,30,.5)}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6366f1,#a855f7);border-radius:4px}
 @keyframes pulse-glow{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
 @keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes levelFlash{0%{opacity:0;transform:scale(.5)}30%{opacity:1;transform:scale(1.1)}100%{opacity:0;transform:scale(2)}}
 @keyframes slideIn{from{transform:translateY(-30px);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes popIn{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
 @keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(168,85,247,.3)}50%{box-shadow:0 0 40px rgba(168,85,247,.6)}}
+@keyframes goldGlow{0%,100%{box-shadow:0 0 20px rgba(245,158,11,.3)}50%{box-shadow:0 0 40px rgba(245,158,11,.6)}}
 @keyframes tickPulse{0%,100%{color:#f87171}50%{color:#fca5a5}}
+@keyframes cardEntrance{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes dangerPulse{0%,100%{background:rgba(239,68,68,.08)}50%{background:rgba(239,68,68,.2)}}
+@keyframes statAllocPulse{0%,100%{box-shadow:0 0 8px rgba(129,140,248,.3)}50%{box-shadow:0 0 20px rgba(129,140,248,.7)}}
+@keyframes critFlash{0%{opacity:1;transform:scale(1)}50%{transform:scale(1.8)}100%{opacity:0;transform:scale(2.5)}}
+@keyframes badgeUnlock{0%{transform:scale(0) rotate(-180deg);opacity:0}60%{transform:scale(1.2) rotate(10deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes shineSlide{0%{left:-100%}100%{left:200%}}
 </style>
 </head>
 <body>
@@ -36,7 +43,7 @@ const {useState,useEffect,useCallback,useRef} = React;
 
 /* ═══════════════════ SERVICE WORKER ═══════════════════ */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
 }
 
 /* ═══════════════════ CONSTANTS ═══════════════════ */
@@ -125,6 +132,53 @@ const TIMER_DEFAULTS = [
   { id:"t_b", name:"Breathe", desc:"5 deep breaths", icon:"🌬️", intervalMin:90, xp:8, stat:"INT", enabled:true },
 ];
 
+/* ═══════════════════ SOUND ENGINE ═══════════════════ */
+const SoundEngine = {
+  ctx:null, enabled:true,
+  init(){ if(!this.ctx) try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch{} },
+  tone(freq,dur,type,vol){
+    if(!this.enabled||!this.ctx)return;
+    try{if(this.ctx.state==='suspended')this.ctx.resume();}catch{}
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type||'sine';o.frequency.value=freq;g.gain.value=vol||0.15;
+    o.connect(g);g.connect(this.ctx.destination);
+    const t=this.ctx.currentTime;g.gain.setValueAtTime(vol||0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.start(t);o.stop(t+dur);
+  },
+  questComplete(){this.init();const t=this.ctx?.currentTime||0;[523,659,784].forEach((f,i)=>setTimeout(()=>this.tone(f,.2,'sine',.12),i*70));},
+  levelUp(){this.init();[262,330,392,523].forEach((f,i)=>setTimeout(()=>this.tone(f,.35,'triangle',.15),i*120));},
+  questFail(){this.init();this.tone(392,.15,'sawtooth',.08);setTimeout(()=>this.tone(262,.3,'sawtooth',.08),100);},
+  achievementUnlock(){this.init();[523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.tone(f,.3,'sine',.13),i*100));setTimeout(()=>this.tone(1047,.5,'triangle',.1),400);},
+  criticalHit(){this.init();this.tone(880,.08,'square',.1);setTimeout(()=>this.tone(1047,.15,'sine',.12),60);setTimeout(()=>this.tone(1319,.25,'sine',.1),120);},
+};
+
+/* ═══════════════════ ACHIEVEMENTS ═══════════════════ */
+const ACHIEVEMENTS = [
+  {id:"first_blood",name:"First Blood",desc:"Complete your first quest",icon:"🗡️",check:s=>s.totalXp>0},
+  {id:"d_rank",name:"D-Rank Promotion",desc:"Reach Level 3",icon:"🟢",check:s=>s.level>=3},
+  {id:"rising",name:"Rising Hunter",desc:"Reach Level 5",icon:"📈",check:s=>s.level>=5},
+  {id:"b_rank",name:"B-Rank Promotion",desc:"Reach Level 6",icon:"🟣",check:s=>s.level>=6},
+  {id:"s_rank",name:"S-Rank Hunter",desc:"Reach Level 10",icon:"🔴",check:s=>s.level>=10},
+  {id:"national",name:"National Level",desc:"Reach Level 14",icon:"🏆",check:s=>s.level>=14},
+  {id:"monarch",name:"Shadow Monarch",desc:"Reach Level 18",icon:"👑",check:s=>s.level>=18},
+  {id:"iron_will",name:"Iron Will",desc:"7-day streak",icon:"🔥",check:s=>s.streak>=7},
+  {id:"streak_master",name:"Streak Master",desc:"30-day streak",icon:"⚡",check:s=>s.streak>=30},
+  {id:"perfect_day",name:"Perfect Day",desc:"All 24 daily quests in one day",icon:"🌟",check:s=>s.completedToday.filter(id=>DAILY_QUESTS.some(q=>q.id===id)).length>=DAILY_QUESTS.length},
+  {id:"centurion",name:"Centurion",desc:"Earn 1000 total XP",icon:"🎖️",check:s=>s.totalXp>=1000},
+  {id:"legend",name:"Living Legend",desc:"Earn 10000 total XP",icon:"🌠",check:s=>s.totalXp>=10000},
+  {id:"balanced",name:"Balanced Fighter",desc:"All stats reach 10",icon:"⚖️",check:s=>Math.min(...Object.values(s.stats))>=10},
+  {id:"stat_master",name:"Stat Master",desc:"Any stat reaches 25",icon:"💎",check:s=>Math.max(...Object.values(s.stats))>=25},
+  {id:"system_fav",name:"System's Favorite",desc:"Accept 10 random quests",icon:"🎲",check:s=>(s.achievementCtx?.randomAccepted||0)>=10},
+];
+
+function checkAchievements(state){
+  const earned=state.achievements||[];
+  return ACHIEVEMENTS.filter(a=>!earned.includes(a.id)&&a.check(state)).map(a=>a.id);
+}
+
+/* ═══════════════════ RANK ICONS ═══════════════════ */
+const RANK_ICONS={1:"🛡️",2:"🛡️",3:"⚔️",4:"⚔️",5:"⚔️",6:"🔮",7:"🔮",8:"🔮",9:"🔮",10:"💀",11:"💀",12:"💀",13:"💀",14:"🌟",15:"🌟",16:"🌟",17:"🌟",18:"👑",19:"👑",20:"👑"};
+
 const DEFAULT_STATE = {
   level:1,xp:0,totalXp:0,stats:{STR:1,VIT:1,AGI:1,INT:1,CHA:1},
   statPoints:0,streak:0,completedToday:[],failedToday:[],todayDate:TDK(),
@@ -132,7 +186,8 @@ const DEFAULT_STATE = {
   customQuests:[],timerSettings:TIMER_DEFAULTS,timerCompletionsToday:0,
   notificationsEnabled:false,questsSinceLastRandom:0,randomQuestsToday:0,
   lastFailCheck:0,recentRandomQuests:[],statHistory:{},questFreqMode:"normal",
-  summonUsedToday:false,
+  summonUsedToday:false,achievements:[],achievementCtx:{randomAccepted:0},
+  dailyLog:{},comboTracker:{count:0,lastTime:0},soundEnabled:true,
 };
 
 const getTitle=l=>{if(l>=18)return"Shadow Monarch";if(l>=14)return"National Level";if(l>=10)return"S-Rank Hunter";if(l>=6)return"B-Rank Hunter";if(l>=3)return"D-Rank Hunter";return"E-Rank Hunter";};
@@ -354,9 +409,10 @@ Respond ONLY JSON: {"name":"max 25 chars","desc":"max 50 chars","xp":number,"sta
 /* ═══════════════════ SW NOTIFICATION HELPER ═══════════════════ */
 function swNotif(title, body, tag) {
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const opts={body,tag,renotify:true,vibrate:[200,100,200],icon:'./icons/icon-192.png',badge:'./icons/icon-192.png'};
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then(reg=>{
-      reg.showNotification(title,{body,tag,renotify:true,icon:'./icons/icon-192.png',badge:'./icons/icon-192.png'});
+      reg.showNotification(title,opts);
     }).catch(()=>{ try{new Notification(title,{body,tag});}catch{} });
   } else { try{new Notification(title,{body,tag});}catch{} }
 }
@@ -373,8 +429,10 @@ function App() {
   const [showCM,setShowCM] = useState(false);
   const [timerPop,setTimerPop] = useState(null);
   const [randomPop,setRandomPop] = useState(null);
-  const [rerollUsed,setRerollUsed] = useState(false);
   const [rerolling,setRerolling] = useState(false);
+  const [achievementPop,setAchievementPop] = useState(null);
+  const [critAnim,setCritAnim] = useState(false);
+  const [tabKey,setTabKey] = useState(0);
   const [hour,setHour] = useState(NOW_H());
   const [failToast,setFailToast] = useState(null);
   const tRef = useRef(null);
@@ -402,6 +460,13 @@ function App() {
           if(!s.statHistory)s.statHistory={};
           if(!s.questFreqMode)s.questFreqMode="normal";
           if(s.summonUsedToday===undefined)s.summonUsedToday=false;
+          if(!s.achievements)s.achievements=[];
+          if(!s.achievementCtx)s.achievementCtx={randomAccepted:0};
+          if(!s.dailyLog)s.dailyLog={};
+          if(!s.comboTracker)s.comboTracker={count:0,lastTime:0};
+          if(s.soundEnabled===undefined)s.soundEnabled=true;
+          if('Notification' in window && s.notificationsEnabled && Notification.permission!=='granted') s.notificationsEnabled=false;
+          SoundEngine.enabled=s.soundEnabled!==false;
           setState(s);
         } else {
           setState({...DEFAULT_STATE,todayDate:TDK()});
@@ -479,27 +544,40 @@ function App() {
   useEffect(()=>{
     if(!state||loading) return;
     if((state.randomQuestsToday||0)===0 && Math.random()<0.35) {
-      const tm=setTimeout(async()=>{setRandomPop(await generateAIQuest(state));setRerollUsed(false);},2500);
+      const tm=setTimeout(async()=>{setRandomPop(await generateAIQuest(state));},2500);
       return ()=>clearTimeout(tm);
     }
   },[loading]);
 
   const showT=useCallback((m,t="xp")=>{if(tRef.current)clearTimeout(tRef.current);setToast({m,t});tRef.current=setTimeout(()=>setToast(null),2200);},[]);
 
-  const apXp=useCallback((p,xp,st)=>{
-    const n={...p,xp:p.xp+xp,totalXp:p.totalXp+xp,stats:{...p.stats,[st]:p.stats[st]+1}};
+  const apXp=useCallback((p,xp,st,isCrit)=>{
+    // Streak multiplier
+    const streakMult=p.streak>=10?1.5:p.streak>=5?1.2:1.0;
+    const finalXp=Math.round(xp*streakMult*(isCrit?2:1));
+    const n={...p,xp:p.xp+finalXp,totalXp:p.totalXp+finalXp,stats:{...p.stats,[st]:p.stats[st]+1}};
+    // Stat history
     const td=TDK();const sh={...(p.statHistory||{})};
     if(!sh[td])sh[td]={STR:0,VIT:0,AGI:0,INT:0,CHA:0};
     sh[td]={...sh[td],[st]:(sh[td][st]||0)+1};
     const cutoff=new Date(Date.now()-7*864e5).toISOString().split("T")[0];
     Object.keys(sh).forEach(d=>{if(d<cutoff)delete sh[d];});
     n.statHistory=sh;
+    // Daily log
+    const dl={...(p.dailyLog||{})};
+    if(!dl[td])dl[td]={completed:0,failed:0,xpGained:0,statGains:{STR:0,VIT:0,AGI:0,INT:0,CHA:0}};
+    dl[td]={...dl[td],xpGained:(dl[td].xpGained||0)+finalXp,statGains:{...dl[td].statGains,[st]:(dl[td].statGains[st]||0)+1}};
+    const cutoff30=new Date(Date.now()-30*864e5).toISOString().split("T")[0];
+    Object.keys(dl).forEach(d=>{if(d<cutoff30)delete dl[d];});
+    n.dailyLog=dl;
+    // Level up
     let nl=p.level,nx=n.xp,pts=p.statPoints,did=false;
     while(nl<LEVEL_XP.length-1&&nx>=LEVEL_XP[nl]){nx-=LEVEL_XP[nl];nl++;pts+=3;did=true;}
     n.level=nl;n.xp=nx;n.statPoints=pts;n.title=getTitle(nl);
     n.maxHp=100+(nl-1)*15+(n.stats.VIT-1)*5;n.hp=Math.min(p.hp+5,n.maxHp);
     n.maxMp=50+(nl-1)*8+(n.stats.INT-1)*3;n.mp=Math.min(p.mp+3,n.maxMp);
-    if(did){setTimeout(()=>setLevelUp(true),300);setTimeout(()=>setLevelUp(false),2800);}
+    if(did){if(p.soundEnabled)SoundEngine.levelUp();setTimeout(()=>setLevelUp(true),300);setTimeout(()=>setLevelUp(false),2800);}
+    n._finalXp=finalXp;n._streakMult=streakMult;n._isCrit=isCrit;
     return n;
   },[]);
 
@@ -508,7 +586,7 @@ function App() {
     const threshold=ns.questFreqMode==="aggressive"?2:3;
     const maxDaily=ns.questFreqMode==="aggressive"?10:6;
     if(cnt>=threshold && (ns.randomQuestsToday||0)<maxDaily && Math.random()<0.5){
-      setTimeout(async()=>{setRandomPop(await generateAIQuest(ns));setRerollUsed(false);},1000);
+      setTimeout(async()=>{setRandomPop(await generateAIQuest(ns));},1000);
       return {questsSinceLastRandom:0,randomQuestsToday:(ns.randomQuestsToday||0)+1};
     }
     return {questsSinceLastRandom:cnt};
@@ -518,14 +596,45 @@ function App() {
     let ns;
     setState(p=>{
       if(p.completedToday.includes(q.id))return p;
-      const n=apXp(p,q.xp,q.stat);
+      // Combo tracking
+      const now=Date.now();
+      const combo={...p.comboTracker};
+      if(now-combo.lastTime<3600000){combo.count++;} else {combo.count=1;}
+      combo.lastTime=now;
+      const comboMult=combo.count>=3?1+(combo.count-2)*0.15:1;
+      // Critical hit (10% chance)
+      const isCrit=Math.random()<0.10;
+      const baseXp=Math.round(q.xp*comboMult);
+      const n=apXp(p,baseXp,q.stat,isCrit);
       n.completedToday=[...p.completedToday,q.id];
+      n.comboTracker=combo;
+      // Daily log completed count
+      const td=TDK();const dl={...(n.dailyLog||{})};
+      if(dl[td])dl[td]={...dl[td],completed:(dl[td].completed||0)+1};
+      n.dailyLog=dl;
+      // Check achievements
+      const newAch=checkAchievements(n);
+      if(newAch.length>0){n.achievements=[...(n.achievements||[]),...newAch];}
+      n._newAch=newAch;n._combo=combo.count;
       ns=n; return n;
     });
+    // Sound + animations
+    if(ns?._isCrit){SoundEngine.criticalHit();setCritAnim(true);setTimeout(()=>setCritAnim(false),1200);}
+    else if(state?.soundEnabled){SoundEngine.questComplete();}
+    // Achievement popup
+    if(ns?._newAch?.length>0){
+      const achId=ns._newAch[0];const ach=ACHIEVEMENTS.find(a=>a.id===achId);
+      if(ach){SoundEngine.achievementUnlock();setAchievementPop(ach);setTimeout(()=>setAchievementPop(null),4000);}
+    }
     setXpAnim(true);setTimeout(()=>setXpAnim(false),600);
-    showT(`+${q.xp} XP • +1 ${q.stat}`);
+    const finalXp=ns?._finalXp||q.xp;const mult=ns?._streakMult||1;const combo=ns?._combo||0;
+    let msg=`+${finalXp} XP • +1 ${q.stat}`;
+    if(ns?._isCrit)msg=`CRITICAL HIT! ${msg}`;
+    if(mult>1)msg+=` (×${mult} streak)`;
+    if(combo>=3)msg+=` [${combo}x combo]`;
+    showT(msg,ns?._isCrit?"warn":"xp");
     if(ns){const ru=await maybeRandom(ns);setState(p=>({...p,...ru}));}
-  },[apXp,showT,maybeRandom]);
+  },[apXp,showT,maybeRandom,state?.soundEnabled]);
 
   const doTimer=useCallback(t=>{
     setState(p=>{const n=apXp(p,t.xp,t.stat);n.timerCompletionsToday=(p.timerCompletionsToday||0)+1;return n;});
@@ -534,10 +643,16 @@ function App() {
 
   const acceptRQ=useCallback(()=>{
     if(!randomPop)return;
-    setState(p=>({...p,
-      customQuests:[...p.customQuests,{id:randomPop.id,name:randomPop.name,desc:randomPop.desc,xp:randomPop.xp,stat:randomPop.stat,icon:randomPop.icon,isRandom:true}],
-      recentRandomQuests:[...(p.recentRandomQuests||[]),randomPop.name].slice(-30),
-    }));
+    setState(p=>{
+      const n={...p,
+        customQuests:[...p.customQuests,{id:randomPop.id,name:randomPop.name,desc:randomPop.desc,xp:randomPop.xp,stat:randomPop.stat,icon:randomPop.icon,isRandom:true}],
+        recentRandomQuests:[...(p.recentRandomQuests||[]),randomPop.name].slice(-30),
+        achievementCtx:{...p.achievementCtx,randomAccepted:(p.achievementCtx?.randomAccepted||0)+1},
+      };
+      const newAch=checkAchievements(n);
+      if(newAch.length>0)n.achievements=[...(n.achievements||[]),...newAch];
+      return n;
+    });
     showT("System Quest accepted!","stat");setRandomPop(null);
   },[randomPop,showT]);
 
@@ -548,22 +663,23 @@ function App() {
   },[randomPop]);
 
   const rerollRQ=useCallback(async()=>{
-    if(rerollUsed||rerolling)return;setRerolling(true);
-    setRandomPop(await generateAIQuest(state));setRerollUsed(true);setRerolling(false);
-  },[rerollUsed,rerolling,state]);
+    if(rerolling||!state||state.mp<10)return;setRerolling(true);
+    setState(p=>({...p,mp:Math.max(p.mp-10,0)}));
+    setRandomPop(await generateAIQuest(state));setRerolling(false);
+  },[rerolling,state]);
 
   const summonQuest=useCallback(async()=>{
     if(!state||state.summonUsedToday)return;
     setState(p=>({...p,summonUsedToday:true,randomQuestsToday:(p.randomQuestsToday||0)+1}));
     const q=await generateAIQuest(state);
-    setRandomPop(q);setRerollUsed(false);
+    setRandomPop(q);
   },[state]);
 
   const addCQ=useCallback(q=>{setState(p=>({...p,customQuests:[...p.customQuests,q]}));setShowCM(false);showT("Quest created!","stat");},[showT]);
   const delCQ=useCallback(id=>{setState(p=>({...p,customQuests:p.customQuests.filter(q=>q.id!==id),completedToday:p.completedToday.filter(x=>x!==id)}));},[]);
   const togTmr=useCallback(id=>{setState(p=>({...p,timerSettings:p.timerSettings.map(t=>t.id===id?{...t,enabled:!t.enabled}:t)}));},[]);
   const updTmr=useCallback((id,m)=>{setState(p=>({...p,timerSettings:p.timerSettings.map(t=>t.id===id?{...t,intervalMin:m}:t)}));},[]);
-  const enNotif=useCallback(async()=>{if(!("Notification"in window))return;const ok=await Notification.requestPermission()==="granted";setState(p=>({...p,notificationsEnabled:ok}));showT(ok?"Notifications ON!":"Blocked",ok?"stat":"warn");},[showT]);
+  const enNotif=useCallback(async()=>{if(!("Notification"in window))return;const ok=await Notification.requestPermission()==="granted";setState(p=>({...p,notificationsEnabled:ok}));showT(ok?"Notifications ON!":"Blocked",ok?"stat":"warn");if(ok)setTimeout(()=>swNotif("⚔️ System Active","Notifications enabled. The System watches.","test"),500);},[showT]);
   const tstTmr=useCallback(t=>{swNotif(`⚔️ ${t.name}`,`${t.desc} · +${t.xp} XP`,t.id);setTimerPop({...t});},[]);
   const allocS=useCallback(st=>{setState(p=>{if(p.statPoints<=0)return p;const n={...p,stats:{...p.stats,[st]:p.stats[st]+1},statPoints:p.statPoints-1};if(st==="VIT"){n.maxHp=100+(p.level-1)*15+(n.stats.VIT-1)*5;n.hp=Math.min(p.hp+5,n.maxHp);}if(st==="INT"){n.maxMp=50+(p.level-1)*8+(n.stats.INT-1)*3;n.mp=Math.min(p.mp+3,n.maxMp);}return n;});showT(`+1 ${SL[st]}`,"stat");},[showT]);
   const resetG=useCallback(()=>{if(confirm("Reset all progress?")){const f={...DEFAULT_STATE,todayDate:TDK()};setState(f);localStorage.setItem("sl-v7",JSON.stringify(f));showT("Reset","warn");}},[showT]);
@@ -597,6 +713,19 @@ function App() {
     toast && React.createElement("div",{style:{...toastS,...(toast.t==="warn"?{background:"linear-gradient(90deg,rgba(239,68,68,.9),rgba(248,113,113,.9))"}:toast.t==="stat"?{background:"linear-gradient(90deg,rgba(34,197,94,.9),rgba(74,222,128,.9))"}:{})}},toast.m),
     failToast && React.createElement("div",{style:{...toastS,background:"linear-gradient(90deg,rgba(220,38,38,.95),rgba(185,28,28,.95))",top:50}},failToast),
 
+    // Critical hit flash
+    critAnim && React.createElement("div",{style:{position:"fixed",inset:0,zIndex:300,pointerEvents:"none",background:"radial-gradient(circle,rgba(245,158,11,.3),transparent 70%)",animation:"critFlash 1.2s ease forwards"}}),
+
+    // Achievement popup
+    achievementPop && React.createElement("div",{style:{...ov,zIndex:250}},React.createElement("div",{style:{textAlign:"center",padding:"28px 24px",borderRadius:16,background:"linear-gradient(160deg,#2e1a0a,#3e2a0f)",border:"1px solid rgba(245,158,11,.4)",width:"85%",maxWidth:340,animation:"popIn .4s ease,goldGlow 2s infinite",position:"relative",overflow:"hidden"}},
+      React.createElement("div",{style:{position:"absolute",top:-60,left:"50%",transform:"translateX(-50%)",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle,rgba(245,158,11,.2),transparent 70%)",animation:"pulse-glow 2s infinite"}}),
+      React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:10,letterSpacing:4,color:"#f59e0b",marginBottom:6,position:"relative",zIndex:1}},"★ ACHIEVEMENT UNLOCKED ★"),
+      React.createElement("div",{style:{fontSize:56,marginBottom:8,animation:"badgeUnlock .6s ease",position:"relative",zIndex:1}},achievementPop.icon),
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:22,color:"#fbbf24",marginBottom:6,position:"relative",zIndex:1,textShadow:"0 0 20px rgba(245,158,11,.5)"}},achievementPop.name),
+      React.createElement("p",{style:{fontSize:13,color:"#d4a574",position:"relative",zIndex:1}},achievementPop.desc),
+      React.createElement("button",{onClick:()=>setAchievementPop(null),style:{marginTop:16,padding:"10px 32px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#d97706,#f59e0b)",color:"#000",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'",position:"relative",zIndex:1}},"Claim"),
+    )),
+
     // Timer popup
     timerPop && !randomPop && React.createElement("div",{style:ov},React.createElement("div",{style:popS},
       React.createElement("div",{style:{fontSize:44,marginBottom:8}},timerPop.icon),
@@ -628,40 +757,48 @@ function App() {
       ),
       React.createElement("div",{style:{display:"flex",gap:8}},
         React.createElement("button",{onClick:acceptRQ,style:{flex:2,padding:"11px 0",borderRadius:8,border:"none",background:"linear-gradient(135deg,#7c3aed,#a855f7)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✓ Accept"),
-        !rerollUsed ?
-          React.createElement("button",{onClick:rerollRQ,disabled:rerolling,style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(168,85,247,.3)",background:"rgba(168,85,247,.08)",color:"#c4b5fd",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},rerolling?"...":"🎲 Reroll") :
-          React.createElement("button",{onClick:declineRQ,style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✕ Decline"),
+        React.createElement("button",{onClick:rerollRQ,disabled:rerolling||state.mp<10,style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(168,85,247,.3)",background:state.mp<10?"rgba(100,116,139,.08)":"rgba(168,85,247,.08)",color:state.mp<10?"#475569":"#c4b5fd",fontSize:13,cursor:state.mp<10?"default":"pointer",fontFamily:"'Rajdhani'",opacity:state.mp<10?.5:1}},rerolling?"...":"🎲 10 MP"),
+        React.createElement("button",{onClick:declineRQ,style:{flex:1,padding:"11px 0",borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:14,cursor:"pointer",fontFamily:"'Rajdhani'"}},"✕"),
       ),
-      React.createElement("p",{style:{fontSize:10,color:"#64748b",textAlign:"center",marginTop:6,fontFamily:"'Orbitron'"}},rerollUsed?"No rerolls left":"1 reroll remaining"),
+      React.createElement("p",{style:{fontSize:10,color:"#64748b",textAlign:"center",marginTop:6,fontFamily:"'Orbitron'"}},`${state.mp} MP available for rerolls`),
     )),
 
     showCM && React.createElement(CQModal,{onAdd:addCQ,onClose:()=>setShowCM(false)}),
 
     // Header
-    React.createElement("div",{style:{padding:"16px 16px 10px",background:"linear-gradient(180deg,rgba(99,102,241,.08),transparent)",borderBottom:"1px solid rgba(99,102,241,.15)",flexShrink:0}},
-      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}},
-        React.createElement("div",null,
-          React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:10,color:"#818cf8",letterSpacing:3,textTransform:"uppercase"}},state.title),
-          React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:24,fontWeight:900,lineHeight:1}},`LV. ${state.level}`),
+    React.createElement("div",{style:{padding:"16px 16px 10px",background:"linear-gradient(180deg,rgba(99,102,241,.12),rgba(15,23,42,.3),transparent)",borderBottom:"1px solid rgba(99,102,241,.15)",flexShrink:0,position:"relative",overflow:"hidden"}},
+      React.createElement("div",{style:{position:"absolute",top:-40,left:"30%",width:160,height:160,borderRadius:"50%",background:"radial-gradient(circle,rgba(99,102,241,.15),transparent 70%)",pointerEvents:"none"}}),
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10,position:"relative",zIndex:1}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},
+          React.createElement("span",{style:{fontSize:28}},RANK_ICONS[state.level]||"🛡️"),
+          React.createElement("div",null,
+            React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:10,color:"#818cf8",letterSpacing:3,textTransform:"uppercase",textShadow:"0 0 10px rgba(99,102,241,.3)"}},state.title),
+            React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:24,fontWeight:900,lineHeight:1,textShadow:"0 0 20px rgba(99,102,241,.3)"}},`LV. ${state.level}`),
+          ),
         ),
-        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:4,background:"rgba(251,146,60,.1)",border:"1px solid rgba(251,146,60,.25)",borderRadius:8,padding:"3px 8px"}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:4,background:"rgba(251,146,60,.12)",border:"1px solid rgba(251,146,60,.3)",borderRadius:8,padding:"4px 10px",...(state.streak>5?{boxShadow:"0 0 12px rgba(251,146,60,.3)",animation:"goldGlow 3s infinite"}:{})}},
           React.createElement("span",{style:{fontSize:14}},"🔥"),
           React.createElement("span",{style:{fontFamily:"'Orbitron'",fontSize:16,fontWeight:700,color:"#fb923c"}},state.streak),
         ),
       ),
-      React.createElement(Bar,{l:"XP",v:state.xp,mx:xpN,t:"xp",g:xpAnim}),
-      React.createElement(Bar,{l:"HP",v:state.hp,mx:state.maxHp,t:"hp"}),
-      React.createElement(Bar,{l:"MP",v:state.mp,mx:state.maxMp,t:"mp"}),
-      React.createElement("p",{style:{textAlign:"center",fontSize:10,color:"#64748b",marginTop:6,fontFamily:"'Orbitron'"}},
+      React.createElement("div",{style:{position:"relative",zIndex:1}},
+        React.createElement(Bar,{l:"XP",v:state.xp,mx:xpN,t:"xp",g:xpAnim}),
+        React.createElement(Bar,{l:"HP",v:state.hp,mx:state.maxHp,t:"hp"}),
+        React.createElement(Bar,{l:"MP",v:state.mp,mx:state.maxMp,t:"mp"}),
+      ),
+      React.createElement("p",{style:{textAlign:"center",fontSize:10,color:"#64748b",marginTop:6,fontFamily:"'Orbitron'",position:"relative",zIndex:1}},
         `${doneQ.length}/${DAILY_QUESTS.length} done • ${failQ.length} failed • ${fmtH(h)} now`
       ),
     ),
 
+    // HP Danger Banner
+    state.hp < state.maxHp*0.25 && React.createElement("div",{style:{padding:"6px 12px",textAlign:"center",fontSize:13,fontWeight:700,fontFamily:"'Orbitron'",color:"#fca5a5",letterSpacing:1,animation:"dangerPulse 1.5s infinite",flexShrink:0,borderBottom:"1px solid rgba(239,68,68,.2)"}},"⚠️ DANGER — HP CRITICAL"),
+
     // Tabs
-    React.createElement("div",{style:{display:"flex",flexShrink:0,background:"rgba(10,10,18,.95)",borderBottom:"1px solid rgba(99,102,241,.1)"}},
+    React.createElement("div",{style:{display:"flex",flexShrink:0,background:"linear-gradient(180deg,rgba(15,15,30,.98),rgba(10,10,18,.95))",borderBottom:"1px solid rgba(99,102,241,.1)"}},
       [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["stats","📊 Stats"],["settings","⚙️ Set"]].map(([k,l])=>
-        React.createElement("button",{key:k,onClick:()=>setTab(k),style:{flex:1,padding:"10px 0",border:"none",background:"transparent",color:tab===k?"#818cf8":"#64748b",fontFamily:"'Rajdhani'",fontSize:12,fontWeight:600,cursor:"pointer",borderBottom:tab===k?"2px solid #818cf8":"2px solid transparent",position:"relative"}},
-          l, k==="stats"&&state.statPoints>0&&React.createElement("span",{style:{position:"absolute",top:3,right:"15%",background:"#ef4444",color:"#fff",fontSize:8,fontFamily:"'Orbitron'",width:14,height:14,borderRadius:7,display:"inline-flex",alignItems:"center",justifyContent:"center"}},state.statPoints)
+        React.createElement("button",{key:k,onClick:()=>{setTab(k);setTabKey(n=>n+1);},style:{flex:1,padding:"11px 0",border:"none",background:"transparent",color:tab===k?"#a5b4fc":"#64748b",fontFamily:"'Rajdhani'",fontSize:13,fontWeight:tab===k?700:600,cursor:"pointer",borderBottom:tab===k?"3px solid":"3px solid transparent",borderImage:tab===k?"linear-gradient(90deg,#6366f1,#a855f7) 1":"none",position:"relative",transition:"all .2s ease",boxShadow:tab===k?"0 2px 10px rgba(99,102,241,.2)":"none"}},
+          l, k==="stats"&&state.statPoints>0&&React.createElement("span",{style:{position:"absolute",top:3,right:"12%",background:"linear-gradient(135deg,#ef4444,#f87171)",color:"#fff",fontSize:8,fontFamily:"'Orbitron'",width:16,height:16,borderRadius:8,display:"inline-flex",alignItems:"center",justifyContent:"center",boxShadow:"0 0 8px rgba(239,68,68,.4)"}},state.statPoints)
         )
       )
     ),
@@ -672,7 +809,7 @@ function App() {
       tab==="workout" && React.createElement(WorkoutTab,{qs:WORKOUT_QUESTS,dn:state.completedToday,onDo:doQuest,lv:state.level,rk:wRank,sRk:setWRank}),
       tab==="timers" && React.createElement(TimersTab,{ts:state.timerSettings,onTog:togTmr,onUpd:updTmr,nOn:state.notificationsEnabled,onEN:enNotif,cnt:state.timerCompletionsToday||0,onTst:tstTmr}),
       tab==="stats" && React.createElement(StatsTab,{state,onAl:allocS,onRst:resetG}),
-      tab==="settings" && React.createElement(SettingsTab,{freqMode:state.questFreqMode,onFreqMode:m=>setState(p=>({...p,questFreqMode:m}))}),
+      tab==="settings" && React.createElement(SettingsTab,{freqMode:state.questFreqMode,onFreqMode:m=>setState(p=>({...p,questFreqMode:m})),soundOn:state.soundEnabled,onSoundTog:()=>{setState(p=>{const v=!p.soundEnabled;SoundEngine.enabled=v;return{...p,soundEnabled:v};});}}),
     ),
   );
 }
@@ -681,52 +818,59 @@ function App() {
 function Bar({l,v,mx,t,g}) {
   const p=Math.min((v/mx)*100,100);
   const bgs={xp:"linear-gradient(90deg,#6366f1,#818cf8,#a5b4fc)",hp:"linear-gradient(90deg,#dc2626,#ef4444,#f87171)",mp:"linear-gradient(90deg,#2563eb,#3b82f6,#60a5fa)"};
-  return React.createElement("div",{style:{marginBottom:4}},
-    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:9,fontFamily:"'Orbitron'",color:"#94a3b8",marginBottom:1}},React.createElement("span",null,l),React.createElement("span",null,`${v}/${mx}`)),
-    React.createElement("div",{style:{height:7,borderRadius:4,background:"rgba(30,41,59,.8)",overflow:"hidden"}},
-      React.createElement("div",{style:{height:"100%",borderRadius:4,transition:"width .5s,filter .3s",background:bgs[t],width:`${p}%`,...(g?{filter:"brightness(1.8)"}:{})}})
+  const glows={xp:"0 0 8px rgba(99,102,241,.5)",hp:"0 0 8px rgba(239,68,68,.5)",mp:"0 0 8px rgba(59,130,246,.5)"};
+  const isHpDanger=t==="hp"&&(v/mx)<0.25;
+  return React.createElement("div",{style:{marginBottom:5}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",fontSize:9,fontFamily:"'Orbitron'",color:"#94a3b8",marginBottom:2}},React.createElement("span",null,l),React.createElement("span",null,`${v}/${mx}`)),
+    React.createElement("div",{style:{height:10,borderRadius:5,background:"rgba(30,41,59,.8)",overflow:"hidden",boxShadow:"inset 0 1px 3px rgba(0,0,0,.3)"}},
+      React.createElement("div",{style:{height:"100%",borderRadius:5,transition:"width .5s,filter .3s,box-shadow .3s",background:bgs[t],width:`${p}%`,boxShadow:p>0?glows[t]:"none",...(g?{filter:"brightness(1.8)",boxShadow:`${glows[t]}, 0 0 16px rgba(99,102,241,.6)`}:{}),...(isHpDanger?{animation:"dangerPulse 1.5s infinite"}:{})}})
     )
   );
 }
 
 /* ═══════════════════ QUEST CARD ═══════════════════ */
-function QuestCard({q,status,h,onDo}) {
+function QuestCard({q,status,h,onDo,idx}) {
   const isDone = status==="completed";
   const isFailed = status==="failed" || status==="expired";
   const isUpcoming = status==="upcoming";
-  const isLocked = q.rl && false; // for workout
   const timeColor = isFailed ? "#ef4444" : isUpcoming ? "#64748b" : getUrgencyColor(q,h);
   const timeLbl = isFailed ? "Failed" : isUpcoming ? `Unlocks ${fmtH(q.from)}` : isDone ? "Done" : getTimeLabel(q,h);
+  const isExpiringSoon = !isDone && !isFailed && !isUpcoming && (q.until-h)<=1;
+  const isActive = !isDone && !isFailed && !isUpcoming;
 
   return React.createElement("button",{
-    onClick:()=>!isDone&&!isFailed&&!isUpcoming&&onDo(q),
-    disabled:isDone||isFailed||isUpcoming,
-    style:{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",marginBottom:6,borderRadius:10,
-      background:isFailed?"rgba(239,68,68,.05)":isDone?"rgba(34,197,94,.05)":"rgba(30,41,59,.35)",
-      border:`1px solid ${isFailed?"rgba(239,68,68,.2)":isDone?"rgba(34,197,94,.2)":q.isRandom?"rgba(168,85,247,.25)":"rgba(99,102,241,.1)"}`,
-      cursor:isDone||isFailed||isUpcoming?"default":"pointer",textAlign:"left",
-      opacity:isFailed?.4:isUpcoming?.35:isDone?.5:1,
+    onClick:()=>isActive&&onDo(q),
+    disabled:!isActive,
+    style:{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 14px",marginBottom:7,borderRadius:12,
+      background:isFailed?"rgba(239,68,68,.05)":isDone?"rgba(34,197,94,.05)":"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",
+      border:`1px solid ${isFailed?"rgba(239,68,68,.2)":isDone?"rgba(34,197,94,.2)":q.isRandom?"rgba(168,85,247,.3)":"rgba(99,102,241,.12)"}`,
+      cursor:isActive?"pointer":"default",textAlign:"left",
+      opacity:isFailed?.4:isUpcoming?.35:isDone?.55:1,
       WebkitAppearance:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Rajdhani'",
-      borderLeft:q.isRandom?"3px solid #a855f7":undefined,
+      borderLeft:q.isRandom?"3px solid #a855f7":isActive?"3px solid rgba(99,102,241,.4)":"3px solid transparent",
+      boxShadow:isActive&&q.isRandom?"inset 3px 0 8px rgba(168,85,247,.15)":isActive?"inset 3px 0 8px rgba(99,102,241,.1)":"none",
+      animation:typeof idx==="number"?`cardEntrance .4s ease ${idx*0.04}s both`:"none",
+      position:"relative",overflow:"hidden",
     }
   },
-    React.createElement("span",{style:{fontSize:22,width:32,textAlign:"center",flexShrink:0}},isFailed?"💀":isUpcoming?"🔒":q.icon),
+    isActive && !isDone && React.createElement("div",{style:{position:"absolute",top:0,left:"-100%",width:"50%",height:"100%",background:"linear-gradient(90deg,transparent,rgba(255,255,255,.03),transparent)",animation:"shineSlide 4s ease infinite",pointerEvents:"none"}}),
+    React.createElement("span",{style:{fontSize:24,width:34,textAlign:"center",flexShrink:0}},isFailed?"💀":isUpcoming?"🔒":q.icon),
     React.createElement("div",{style:{flex:1,minWidth:0}},
-      React.createElement("p",{style:{fontSize:14,fontWeight:700,lineHeight:1.2}},
+      React.createElement("p",{style:{fontSize:15,fontWeight:700,lineHeight:1.2}},
         q.name,
-        q.isRandom && React.createElement("span",{style:{color:"#a855f7",fontSize:9,fontFamily:"Orbitron"}}," [SYS]"),
+        q.isRandom && React.createElement("span",{style:{color:"#a855f7",fontSize:9,fontFamily:"Orbitron",marginLeft:4,background:"rgba(168,85,247,.1)",padding:"1px 5px",borderRadius:4}},"SYS"),
       ),
-      React.createElement("p",{style:{fontSize:11,color:"#94a3b8",lineHeight:1.2}},q.desc),
-      React.createElement("p",{style:{fontSize:10,fontFamily:"'Orbitron'",color:timeColor,marginTop:2}},
+      React.createElement("p",{style:{fontSize:11,color:"#94a3b8",lineHeight:1.3,marginTop:1}},q.desc),
+      React.createElement("p",{style:{fontSize:10,fontFamily:"'Orbitron'",color:timeColor,marginTop:3,...(isExpiringSoon?{animation:"tickPulse 1s infinite"}:{})}},
         isFailed && q.failPenalty>0 ? `${timeLbl} (-${q.failPenalty} HP)` : timeLbl
       ),
     ),
-    React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1,flexShrink:0}},
-      isDone ? React.createElement("span",{style:{fontSize:20,color:"#22c55e",fontWeight:900}},"✓") :
-      isFailed ? React.createElement("span",{style:{fontSize:10,color:"#ef4444",fontFamily:"'Orbitron'"}},"FAILED") :
+    React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}},
+      isDone ? React.createElement("span",{style:{fontSize:22,color:"#22c55e",fontWeight:900,textShadow:"0 0 8px rgba(34,197,94,.4)"}},"✓") :
+      isFailed ? React.createElement("span",{style:{fontSize:10,color:"#ef4444",fontFamily:"'Orbitron'",fontWeight:700}},"FAILED") :
       !isUpcoming && React.createElement(React.Fragment,null,
-        React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700}},`+${q.xp}`),
-        React.createElement("span",{style:{fontSize:9,color:"#94a3b8",fontFamily:"'Orbitron'"}},q.stat),
+        React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700,background:"rgba(99,102,241,.1)",padding:"2px 8px",borderRadius:6}},`+${q.xp}`),
+        React.createElement("span",{style:{fontSize:9,fontFamily:"'Orbitron'",color:"#22c55e",background:"rgba(34,197,94,.08)",padding:"1px 6px",borderRadius:5}},q.stat),
       )
     ),
   );
@@ -743,7 +887,7 @@ function QuestsTab({active,done,failed,upcoming,cq,completed,h,onDo,onAdd,onDel,
       ),
     ),
     active.length===0 ? React.createElement("p",{style:{fontSize:13,color:"#64748b",padding:"12px 0",textAlign:"center"}},"No active quests right now. Check back soon!") :
-      active.map(q=>React.createElement(QuestCard,{key:q.id,q,status:"active",h,onDo})),
+      active.map((q,i)=>React.createElement(QuestCard,{key:q.id,q,status:"active",h,onDo,idx:i})),
 
     cq.length>0 && React.createElement(React.Fragment,null,
       React.createElement("p",{style:{...secS,marginTop:14}},"🛠️ Custom & System Quests"),
@@ -789,15 +933,17 @@ function WorkoutTab({qs,dn,onDo,lv,rk,sRk}) {
   return React.createElement("div",null,
     React.createElement("p",{style:secS},"⚔️ Training Grounds"),
     React.createElement("div",{style:{display:"flex",gap:5,marginBottom:12,flexWrap:"wrap"}},
-      ["E","D","C","B","A","S"].map(r=>React.createElement("button",{key:r,onClick:()=>sRk(r),style:{padding:"5px 12px",borderRadius:6,border:"1.5px solid",fontSize:13,fontFamily:"'Orbitron'",fontWeight:700,cursor:"pointer",borderColor:RC[r],color:rk===r?"#000":RC[r],background:rk===r?RC[r]:"transparent",boxShadow:rk===r?`0 0 12px ${RG[r]}`:"none"}},r))
+      ["E","D","C","B","A","S"].map(r=>React.createElement("button",{key:r,onClick:()=>sRk(r),style:{padding:"6px 14px",borderRadius:8,border:"1.5px solid",fontSize:13,fontFamily:"'Orbitron'",fontWeight:700,cursor:"pointer",borderColor:RC[r],color:rk===r?"#000":RC[r],background:rk===r?RC[r]:"transparent",boxShadow:rk===r?`0 0 16px ${RG[r]}, inset 0 0 8px rgba(255,255,255,.15)`:"none",transition:"all .25s ease",transform:rk===r?"scale(1.05)":"scale(1)"}},r))
     ),
     qs.filter(q=>q.rank===rk).map(q=>{
       const lk=q.rl&&lv<q.rl;const isDone=dn.includes(q.id);
       return React.createElement("button",{key:q.id,onClick:()=>!isDone&&!lk&&onDo(q),disabled:lk||isDone,
-        style:{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 12px",marginBottom:6,borderRadius:10,borderLeft:`3px solid ${RC[q.rank]}`,
-          background:isDone?"rgba(34,197,94,.05)":"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.1)",
-          opacity:lk?.35:isDone?.5:1,cursor:lk||isDone?"default":"pointer",textAlign:"left",
-          WebkitAppearance:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Rajdhani'"}},
+        style:{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 14px",marginBottom:7,borderRadius:12,borderLeft:`3px solid ${RC[q.rank]}`,
+          background:isDone?"rgba(34,197,94,.05)":"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",border:`1px solid ${isDone?"rgba(34,197,94,.2)":"rgba(99,102,241,.12)"}`,
+          opacity:lk?.35:isDone?.55:1,cursor:lk||isDone?"default":"pointer",textAlign:"left",
+          boxShadow:!lk&&!isDone?`inset 3px 0 8px ${RG[q.rank]}`:"none",
+          WebkitAppearance:"none",outline:"none",color:"#e2e8f0",fontFamily:"'Rajdhani'",
+          animation:`cardEntrance .4s ease both`}},
         React.createElement("span",{style:{fontSize:22,width:32,textAlign:"center"}},lk?"🔒":q.icon),
         React.createElement("div",{style:{flex:1}},
           React.createElement("p",{style:{fontSize:14,fontWeight:700}},q.name,React.createElement("span",{style:{color:RC[q.rank],fontSize:10,fontFamily:"Orbitron"}},` (${q.rank})`)),
@@ -820,7 +966,7 @@ function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst}) {
     ) :
     React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",marginBottom:10,borderRadius:8,background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.2)"}},React.createElement("span",null,"✅"),React.createElement("p",{style:{fontSize:12,color:"#4ade80"}},"Notifications Active")),
     React.createElement("p",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#64748b",marginBottom:10}},`${cnt} reminders today`),
-    ts.map(t=>React.createElement("div",{key:t.id,style:{display:"flex",alignItems:"center",gap:8,padding:12,marginBottom:6,borderRadius:10,background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.1)"}},
+    ts.map(t=>React.createElement("div",{key:t.id,style:{display:"flex",alignItems:"center",gap:10,padding:13,marginBottom:7,borderRadius:12,background:"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",border:`1px solid ${t.enabled?"rgba(99,102,241,.2)":"rgba(99,102,241,.08)"}`,boxShadow:t.enabled?"0 0 8px rgba(99,102,241,.08)":"none",transition:"all .3s ease"}},
       React.createElement("span",{style:{fontSize:22}},t.icon),
       React.createElement("div",{style:{flex:1,minWidth:0}},
         React.createElement("p",{style:{fontSize:14,fontWeight:700,color:t.enabled?"#e2e8f0":"#64748b"}},t.name),
@@ -832,8 +978,8 @@ function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst}) {
           React.createElement("button",{onClick:()=>onTst(t),style:{padding:"1px 6px",borderRadius:4,border:"1px solid rgba(129,140,248,.25)",background:"rgba(99,102,241,.1)",color:"#a5b4fc",fontSize:10,cursor:"pointer",fontFamily:"'Orbitron'"}},"▶"),
         ),
       ),
-      React.createElement("button",{onClick:()=>onTog(t.id),style:{width:38,height:22,borderRadius:11,border:"none",cursor:"pointer",display:"flex",alignItems:"center",padding:2,background:t.enabled?"#818cf8":"rgba(100,116,139,.3)",justifyContent:t.enabled?"flex-end":"flex-start",flexShrink:0}},
-        React.createElement("div",{style:{width:18,height:18,borderRadius:9,background:"#fff"}})
+      React.createElement("button",{onClick:()=>onTog(t.id),style:{width:40,height:23,borderRadius:12,border:"none",cursor:"pointer",display:"flex",alignItems:"center",padding:2,background:t.enabled?"linear-gradient(135deg,#6366f1,#818cf8)":"rgba(100,116,139,.3)",justifyContent:t.enabled?"flex-end":"flex-start",flexShrink:0,boxShadow:t.enabled?"0 0 10px rgba(99,102,241,.4)":"none",transition:"all .3s ease"}},
+        React.createElement("div",{style:{width:19,height:19,borderRadius:10,background:"#fff",boxShadow:t.enabled?"0 0 6px rgba(255,255,255,.3)":"none",transition:"all .2s ease"}})
       ),
     )),
   );
@@ -843,23 +989,46 @@ function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst}) {
 function StatsTab({state,onAl,onRst}) {
   const mx=Math.max(...Object.values(state.stats),10);
   const cl={STR:"#ef4444",VIT:"#22c55e",AGI:"#3b82f6",INT:"#a855f7",CHA:"#f59e0b"};
+  const gl={STR:"0 0 8px rgba(239,68,68,.4)",VIT:"0 0 8px rgba(34,197,94,.4)",AGI:"0 0 8px rgba(59,130,246,.4)",INT:"0 0 8px rgba(168,85,247,.4)",CHA:"0 0 8px rgba(245,158,11,.4)"};
+
+  // Daily summary data (last 7 days)
+  const dl=state.dailyLog||{};
+  const today=TDK();
+  const last7=Array.from({length:7},(_,i)=>{
+    const d=new Date(Date.now()-(6-i)*864e5).toISOString().split("T")[0];
+    return {date:d,day:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date(d).getDay()],...(dl[d]||{completed:0,failed:0,xpGained:0})};
+  });
+  const maxComp=Math.max(...last7.map(d=>d.completed),1);
+
+  // Streak calendar (last 30 days)
+  const last30=Array.from({length:30},(_,i)=>{
+    const d=new Date(Date.now()-(29-i)*864e5).toISOString().split("T")[0];
+    return {date:d,active:!!(dl[d]&&dl[d].completed>0)};
+  });
+
+  // Weekly summary
+  const weekData=last7.reduce((a,d)=>({quests:a.quests+d.completed,xp:a.xp+d.xpGained}),{quests:0,xp:0});
+
   return React.createElement("div",null,
+    // Stats
     React.createElement("p",{style:secS},"📊 Hunter Status"),
-    state.statPoints>0 && React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"8px 14px",marginBottom:12,borderRadius:10,background:"linear-gradient(90deg,rgba(99,102,241,.15),rgba(168,85,247,.15))",border:"1px solid rgba(129,140,248,.3)",fontSize:14,fontWeight:600,color:"#c7d2fe",fontFamily:"'Orbitron'"}},React.createElement("span",{style:{animation:"pulse-glow 1.5s infinite",fontSize:16}},"⭐"),`${state.statPoints} point${state.statPoints>1?"s":""}`),
+    state.statPoints>0 && React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"9px 14px",marginBottom:12,borderRadius:10,background:"linear-gradient(90deg,rgba(99,102,241,.15),rgba(168,85,247,.15))",border:"1px solid rgba(129,140,248,.3)",fontSize:14,fontWeight:600,color:"#c7d2fe",fontFamily:"'Orbitron'",animation:"statAllocPulse 2s infinite"}},React.createElement("span",{style:{animation:"pulse-glow 1.5s infinite",fontSize:16}},"⭐"),`${state.statPoints} point${state.statPoints>1?"s":""}`),
     React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8,marginBottom:18}},
       SN.map(st=>React.createElement("div",{key:st,style:{display:"flex",alignItems:"center",gap:6}},
-        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:3,width:80,flexShrink:0}},
-          React.createElement("span",{style:{fontSize:14}},SI[st]),
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:3,width:82,flexShrink:0}},
+          React.createElement("span",{style:{fontSize:15}},SI[st]),
           React.createElement("span",{style:{fontFamily:"'Orbitron'",fontSize:11,fontWeight:700,color:"#94a3b8",width:28}},st),
-          React.createElement("span",{style:{fontFamily:"'Orbitron'",fontSize:13,fontWeight:700,width:22,textAlign:"right"}},state.stats[st]),
+          React.createElement("span",{style:{fontFamily:"'Orbitron'",fontSize:13,fontWeight:700,width:24,textAlign:"right"}},state.stats[st]),
         ),
-        React.createElement("div",{style:{flex:1,height:9,borderRadius:4,background:"rgba(30,41,59,.6)",overflow:"hidden"}},
-          React.createElement("div",{style:{height:"100%",borderRadius:4,transition:"width .5s",background:cl[st],width:`${(state.stats[st]/mx)*100}%`}})
+        React.createElement("div",{style:{flex:1,height:10,borderRadius:5,background:"rgba(30,41,59,.6)",overflow:"hidden",boxShadow:"inset 0 1px 3px rgba(0,0,0,.3)"}},
+          React.createElement("div",{style:{height:"100%",borderRadius:5,transition:"width .5s",background:cl[st],width:`${(state.stats[st]/mx)*100}%`,boxShadow:gl[st]}})
         ),
-        state.statPoints>0 && React.createElement("button",{onClick:()=>onAl(st),style:{width:26,height:26,borderRadius:6,border:"1.5px solid #818cf8",background:"rgba(99,102,241,.15)",color:"#818cf8",fontSize:16,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Orbitron'"}},"+"),
+        state.statPoints>0 && React.createElement("button",{onClick:()=>onAl(st),style:{width:28,height:28,borderRadius:7,border:"1.5px solid #818cf8",background:"rgba(99,102,241,.15)",color:"#818cf8",fontSize:16,fontWeight:900,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Orbitron'",animation:"statAllocPulse 2s infinite",transition:"all .2s ease"}},"+"),
       ))
     ),
-    React.createElement("div",{style:{background:"rgba(30,41,59,.3)",border:"1px solid rgba(99,102,241,.1)",borderRadius:12,padding:12,marginBottom:14}},
+
+    // Info panel
+    React.createElement("div",{style:{background:"linear-gradient(160deg,rgba(30,41,59,.5),rgba(15,23,42,.6))",border:"1px solid rgba(99,102,241,.15)",borderRadius:12,padding:14,marginBottom:16}},
       [["Title",state.title],["Level",state.level],["Total XP",state.totalXp.toLocaleString()],["Streak",`${state.streak} days`],["HP",`${state.hp}/${state.maxHp}`],["MP",`${state.mp}/${state.maxMp}`],["Failed Today",(state.failedToday||[]).length]].map(([k,v])=>
         React.createElement("div",{key:k,style:{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid rgba(99,102,241,.06)"}},
           React.createElement("span",{style:{fontSize:12,color:"#64748b"}},k),
@@ -867,7 +1036,45 @@ function StatsTab({state,onAl,onRst}) {
         )
       )
     ),
-    React.createElement("button",{onClick:onRst,style:{width:"100%",padding:10,borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"}},"Reset Progress"),
+
+    // Achievements
+    React.createElement("p",{style:{...secS,marginTop:4}},"🏆 Achievements"),
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:18}},
+      ACHIEVEMENTS.map(a=>{
+        const earned=(state.achievements||[]).includes(a.id);
+        return React.createElement("div",{key:a.id,style:{display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 4px",borderRadius:10,background:earned?"linear-gradient(160deg,rgba(245,158,11,.1),rgba(217,119,6,.05))":"rgba(30,41,59,.3)",border:`1px solid ${earned?"rgba(245,158,11,.3)":"rgba(99,102,241,.08)"}`,opacity:earned?1:.4,position:"relative",overflow:"hidden"}},
+          earned && React.createElement("div",{style:{position:"absolute",top:0,left:"-100%",width:"50%",height:"100%",background:"linear-gradient(90deg,transparent,rgba(245,158,11,.08),transparent)",animation:"shineSlide 5s ease infinite",pointerEvents:"none"}}),
+          React.createElement("span",{style:{fontSize:24,marginBottom:3,...(earned?{animation:"badgeUnlock .6s ease"}:{})}},earned?a.icon:"🔒"),
+          React.createElement("p",{style:{fontSize:9,fontFamily:"'Orbitron'",color:earned?"#fbbf24":"#475569",textAlign:"center",lineHeight:1.2}},a.name),
+        );
+      })
+    ),
+
+    // 7-Day Activity
+    React.createElement("p",{style:secS},"📈 7-Day Activity"),
+    React.createElement("div",{style:{display:"flex",alignItems:"flex-end",gap:4,height:80,marginBottom:4,padding:"0 4px"}},
+      last7.map((d,i)=>{
+        const pct=d.completed/maxComp;
+        const color=pct>=0.8?"#22c55e":pct>=0.5?"#f59e0b":pct>0?"#ef4444":"rgba(100,116,139,.3)";
+        return React.createElement("div",{key:i,style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}},
+          React.createElement("span",{style:{fontSize:8,fontFamily:"'Orbitron'",color:"#64748b"}},d.completed||""),
+          React.createElement("div",{style:{width:"100%",height:`${Math.max(pct*60,3)}px`,borderRadius:4,background:color,boxShadow:pct>0?`0 0 6px ${color}40`:"none",transition:"height .5s ease"}}),
+          React.createElement("span",{style:{fontSize:8,fontFamily:"'Orbitron'",color:d.date===today?"#a5b4fc":"#475569"}},d.day),
+        );
+      })
+    ),
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",padding:"6px 10px",marginBottom:16,borderRadius:8,background:"rgba(30,41,59,.3)",border:"1px solid rgba(99,102,241,.08)"}},
+      React.createElement("span",{style:{fontSize:11,color:"#64748b"}},`This week: ${weekData.quests} quests`),
+      React.createElement("span",{style:{fontSize:11,fontFamily:"'Orbitron'",color:"#818cf8",fontWeight:700}},`${weekData.xp.toLocaleString()} XP`),
+    ),
+
+    // Streak Calendar (30 days)
+    React.createElement("p",{style:secS},"🔥 Streak Calendar"),
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(10,1fr)",gap:4,marginBottom:18}},
+      last30.map((d,i)=>React.createElement("div",{key:i,title:d.date,style:{width:"100%",aspectRatio:"1",borderRadius:4,background:d.active?"#22c55e":"rgba(100,116,139,.15)",boxShadow:d.active?"0 0 6px rgba(34,197,94,.3)":"none",border:d.date===today?"2px solid #818cf8":"1px solid transparent"}}))
+    ),
+
+    React.createElement("button",{onClick:onRst,style:{width:"100%",padding:10,borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'",marginTop:8}},"Reset Progress"),
   );
 }
 
@@ -898,7 +1105,7 @@ function CQModal({onAdd,onClose}) {
 }
 
 /* ═══════════════════ SETTINGS TAB ═══════════════════ */
-function SettingsTab({freqMode,onFreqMode}) {
+function SettingsTab({freqMode,onFreqMode,soundOn,onSoundTog}) {
   const [provider,setProvider]=React.useState(()=>localStorage.getItem("sl_ai_provider")||"gemini");
   const [key,setKey]=React.useState(()=>localStorage.getItem(`sl_api_key_${localStorage.getItem("sl_ai_provider")||"gemini"}`)||"");
   const [saved,setSaved]=React.useState(false);
@@ -942,6 +1149,19 @@ function SettingsTab({freqMode,onFreqMode}) {
       ),
     ),
 
+    React.createElement("div",{style:{background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.15)",borderRadius:12,padding:"14px 14px",marginBottom:14}},
+      React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#c7d2fe",marginBottom:10}},"🔊 Sound Effects"),
+      React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between"}},
+        React.createElement("div",null,
+          React.createElement("p",{style:{fontSize:14,fontWeight:700,color:soundOn?"#c7d2fe":"#64748b"}},"Sound Effects"),
+          React.createElement("p",{style:{fontSize:11,color:"#64748b"}},"Quest complete, level up, critical hit sounds"),
+        ),
+        React.createElement("button",{onClick:onSoundTog,style:{width:40,height:23,borderRadius:12,border:"none",cursor:"pointer",display:"flex",alignItems:"center",padding:2,background:soundOn?"linear-gradient(135deg,#6366f1,#818cf8)":"rgba(100,116,139,.3)",justifyContent:soundOn?"flex-end":"flex-start",flexShrink:0,boxShadow:soundOn?"0 0 10px rgba(99,102,241,.4)":"none",transition:"all .3s ease"}},
+          React.createElement("div",{style:{width:19,height:19,borderRadius:10,background:"#fff",transition:"all .2s ease"}}),
+        ),
+      ),
+    ),
+
     React.createElement("div",{style:{background:"rgba(30,41,59,.35)",border:"1px solid rgba(99,102,241,.15)",borderRadius:12,padding:"14px 14px"}},
       React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:13,color:"#c7d2fe",marginBottom:6}},"🎲 How Random Quests Work"),
       [
@@ -963,7 +1183,7 @@ const popS = {textAlign:"center",padding:"24px 20px",borderRadius:16,background:
 const bpS = {padding:"10px 0",borderRadius:8,border:"none",background:"linear-gradient(135deg,#6366f1,#818cf8)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Rajdhani'"};
 const bgS = {padding:"10px 0",borderRadius:8,border:"1px solid rgba(100,116,139,.3)",background:"transparent",color:"#94a3b8",fontSize:15,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"};
 const toastS = {position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(90deg,rgba(99,102,241,.95),rgba(129,140,248,.95))",color:"#fff",padding:"7px 18px",borderRadius:10,fontSize:13,fontWeight:700,fontFamily:"'Orbitron'",letterSpacing:1,zIndex:200,boxShadow:"0 4px 20px rgba(99,102,241,.4)",animation:"slideIn .3s ease",whiteSpace:"nowrap"};
-const secS = {fontFamily:"'Cinzel',serif",fontSize:16,color:"#c7d2fe",marginBottom:6,letterSpacing:1};
+const secS = {fontFamily:"'Cinzel',serif",fontSize:16,color:"#c7d2fe",marginBottom:8,letterSpacing:1,textShadow:"0 0 12px rgba(99,102,241,.2)",paddingBottom:6,borderBottom:"2px solid transparent",backgroundImage:"linear-gradient(#0a0a12,#0a0a12),linear-gradient(90deg,#6366f1,#a855f7,transparent)",backgroundOrigin:"border-box",backgroundClip:"padding-box,border-box"};
 const mlS = {fontSize:11,color:"#94a3b8",marginBottom:3,marginTop:8,display:"block",fontFamily:"'Orbitron'",letterSpacing:.5};
 const miS = {width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid rgba(99,102,241,.2)",background:"rgba(15,23,42,.8)",color:"#e2e8f0",fontSize:14,outline:"none"};
 const msS = {width:"100%",padding:"7px 8px",borderRadius:8,border:"1px solid rgba(99,102,241,.2)",background:"rgba(15,23,42,.8)",color:"#e2e8f0",fontSize:13,outline:"none"};
