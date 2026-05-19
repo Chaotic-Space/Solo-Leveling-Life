@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="manifest" href="./manifest.json"/>
-<link rel="apple-touch-icon" href="./icons/icon-192.png"/>
+<link rel="apple-touch-icon" href="./icon-192.png"/>
 <title>Solo Leveling Life</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet"/>
@@ -30,8 +30,7 @@ input,select,textarea{font-family:'Rajdhani',sans-serif;-webkit-user-select:text
 <div id="root"></div>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="text/babel">
+<script>
 const {useState,useEffect,useCallback,useRef} = React;
 
 /* ═══════════════════ SERVICE WORKER ═══════════════════ */
@@ -47,9 +46,14 @@ const SI={STR:"⚔️",VIT:"❤️",AGI:"⚡",INT:"🧠",CHA:"✨"};
 const RC={E:"#7a7a7a",D:"#4ade80",C:"#60a5fa",B:"#c084fc",A:"#f59e0b",S:"#ef4444"};
 const RG={E:"rgba(122,122,122,.3)",D:"rgba(74,222,128,.4)",C:"rgba(96,165,250,.4)",B:"rgba(192,132,252,.5)",A:"rgba(245,158,11,.5)",S:"rgba(239,68,68,.6)"};
 const CI=["⭐","🎯","📚","🏃","🧘","🎨","💻","🎵","🌿","💊","🧪","🔧","📝","🏠","🛒","🎮","🧩","🏊","🚴","🥊"];
-const TDK=()=>new Date().toISOString().split("T")[0];
-const NOW_H=()=>new Date().getHours();
-const NOW_M=()=>new Date().getMinutes();
+// Active timezone — defaults to the device zone, overridden by saved/Settings value.
+let TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||"UTC";}catch{return "UTC";}})();
+const setTZ=tz=>{if(tz)TZ=tz;};
+const TDK=()=>new Date().toLocaleDateString("en-CA",{timeZone:TZ});
+const NOW_H=()=>parseInt(new Date().toLocaleString("en-US",{timeZone:TZ,hour:"numeric",hour12:false}),10)%24;
+const NOW_M=()=>parseInt(new Date().toLocaleString("en-US",{timeZone:TZ,minute:"numeric"}),10);
+// Curated timezone list for the Settings picker (device zone is prepended if missing).
+const TZ_LIST=["UTC","Pacific/Honolulu","America/Anchorage","America/Los_Angeles","America/Denver","America/Chicago","America/New_York","America/Sao_Paulo","Europe/London","Europe/Paris","Europe/Berlin","Europe/Moscow","Africa/Lagos","Africa/Johannesburg","Asia/Dubai","Asia/Karachi","Asia/Kolkata","Asia/Dhaka","Asia/Bangkok","Asia/Shanghai","Asia/Singapore","Asia/Tokyo","Asia/Seoul","Australia/Sydney","Pacific/Auckland"];
 
 /*
   TIME-GATED QUEST SYSTEM
@@ -126,6 +130,7 @@ const TIMER_DEFAULTS = [
 ];
 
 const DEFAULT_STATE = {
+  playerName:"Hunter",timezone:TZ,
   level:1,xp:0,totalXp:0,stats:{STR:1,VIT:1,AGI:1,INT:1,CHA:1},
   statPoints:0,streak:0,completedToday:[],failedToday:[],todayDate:TDK(),
   title:"E-Rank Hunter",hp:100,maxHp:100,mp:50,maxMp:50,
@@ -215,33 +220,6 @@ function pickRandomQuest(state) {
   };
 }
 
-async function generateAIQuest(state) {
-  const h = NOW_H();
-  const tc = h<6?"late night":h<9?"early morning":h<12?"morning":h<14?"midday":h<17?"afternoon":h<20?"evening":"night";
-  const top = Object.entries(state.stats).sort((a,b)=>b[1]-a[1])[0];
-  const weak = Object.entries(state.stats).sort((a,b)=>a[1]-b[1])[0];
-  const failCount = (state.failedToday||[]).length;
-
-  const prompt = `You are the System from Solo Leveling. Generate a quest:
-Level ${state.level}, Title: ${state.title}. STR:${state.stats.STR} VIT:${state.stats.VIT} AGI:${state.stats.AGI} INT:${state.stats.INT} CHA:${state.stats.CHA}. Strongest:${top[0]}, Weakest:${weak[0]}. Time:${tc}. Done today:${state.completedToday.length}. Failed today:${failCount}. Streak:${state.streak}.
-${failCount>2 ? "Hunter is struggling today. Give an easier motivational quest." : ""}
-${state.streak>5 ? "Hunter has a strong streak. Give a worthy challenge." : ""}
-Quest must be completable today. Consider time. XP 10-80. Target weak stat sometimes.
-Respond ONLY JSON: {"name":"max 25 chars","desc":"max 50 chars","xp":number,"stat":"STR|VIT|AGI|INT|CHA","icon":"emoji","flavor":"system msg max 80 chars"}`;
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:250,messages:[{role:"user",content:prompt}]}),
-    });
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    const text = data.content?.filter(b=>b.type==="text").map(b=>b.text).join("").trim();
-    const q = JSON.parse(text.replace(/```json\s*|```\s*/g,"").trim());
-    return { id:`rq_${Date.now()}`, name:String(q.name).slice(0,30), desc:String(q.desc||"").slice(0,60), xp:Math.min(Math.max(+q.xp||15,5),120), stat:SN.includes(q.stat)?q.stat:"STR", icon:q.icon||"🎲", flavor:String(q.flavor||"").slice(0,100), isRandom:true };
-  } catch { return pickRandomQuest(state); }
-}
-
 /* ═══════════════════ MAIN APP ═══════════════════ */
 function App() {
   const [state,setState] = useState(null);
@@ -268,6 +246,9 @@ function App() {
         const raw = localStorage.getItem("sl-v7");
         if (raw) {
           const s = JSON.parse(raw);
+          if(!s.playerName)s.playerName="Hunter";
+          if(!s.timezone)s.timezone=TZ;
+          setTZ(s.timezone); // apply saved zone before any date math
           if (s.todayDate !== TDK()) {
             const d = Math.floor((Date.now()-new Date(s.todayDate).getTime())/864e5);
             s.streak = d<=1 ? s.streak+1 : 0;
@@ -279,6 +260,7 @@ function App() {
           if(!s.customQuests)s.customQuests=[];
           if(!s.failedToday)s.failedToday=[];
           setState(s);
+          setHour(NOW_H());
         } else {
           setState({...DEFAULT_STATE,todayDate:TDK()});
         }
@@ -345,7 +327,7 @@ function App() {
   useEffect(()=>{
     if(!state||loading) return;
     if((state.randomQuestsToday||0)===0 && Math.random()<0.35) {
-      const tm=setTimeout(async()=>{setRandomPop(await generateAIQuest(state));setRerollUsed(false);},2500);
+      const tm=setTimeout(()=>{setRandomPop(pickRandomQuest(state));setRerollUsed(false);},2500);
       return ()=>clearTimeout(tm);
     }
   },[loading]);
@@ -366,7 +348,7 @@ function App() {
   const maybeRandom=useCallback(async(ns)=>{
     const cnt=(ns.questsSinceLastRandom||0)+1;
     if(cnt>=3 && (ns.randomQuestsToday||0)<5 && Math.random()<0.5){
-      setTimeout(async()=>{setRandomPop(await generateAIQuest(ns));setRerollUsed(false);},1000);
+      setTimeout(()=>{setRandomPop(pickRandomQuest(ns));setRerollUsed(false);},1000);
       return {questsSinceLastRandom:0,randomQuestsToday:(ns.randomQuestsToday||0)+1};
     }
     return {questsSinceLastRandom:cnt};
@@ -396,9 +378,9 @@ function App() {
     showT("System Quest accepted!","stat");setRandomPop(null);
   },[randomPop,showT]);
 
-  const rerollRQ=useCallback(async()=>{
-    if(rerollUsed||rerolling)return;setRerolling(true);
-    setRandomPop(await generateAIQuest(state));setRerollUsed(true);setRerolling(false);
+  const rerollRQ=useCallback(()=>{
+    if(rerollUsed||rerolling)return;
+    setRandomPop(pickRandomQuest(state));setRerollUsed(true);
   },[rerollUsed,rerolling,state]);
 
   const addCQ=useCallback(q=>{setState(p=>({...p,customQuests:[...p.customQuests,q]}));setShowCM(false);showT("Quest created!","stat");},[showT]);
@@ -408,7 +390,9 @@ function App() {
   const enNotif=useCallback(async()=>{if(!("Notification"in window))return;const ok=await Notification.requestPermission()==="granted";setState(p=>({...p,notificationsEnabled:ok}));showT(ok?"Notifications ON!":"Blocked",ok?"stat":"warn");},[showT]);
   const tstTmr=useCallback(t=>{if("Notification"in window&&Notification.permission==="granted")try{new Notification(`⚔️ ${t.name}`,{body:t.desc});}catch{}setTimerPop({...t});},[]);
   const allocS=useCallback(st=>{setState(p=>{if(p.statPoints<=0)return p;const n={...p,stats:{...p.stats,[st]:p.stats[st]+1},statPoints:p.statPoints-1};if(st==="VIT"){n.maxHp=100+(p.level-1)*15+(n.stats.VIT-1)*5;n.hp=Math.min(p.hp+5,n.maxHp);}if(st==="INT"){n.maxMp=50+(p.level-1)*8+(n.stats.INT-1)*3;n.mp=Math.min(p.mp+3,n.maxMp);}return n;});showT(`+1 ${SL[st]}`,"stat");},[showT]);
-  const resetG=useCallback(()=>{if(confirm("Reset all progress?")){const f={...DEFAULT_STATE,todayDate:TDK()};setState(f);localStorage.setItem("sl-v7",JSON.stringify(f));showT("Reset","warn");}},[showT]);
+  const resetG=useCallback(()=>{if(confirm("Reset all progress?")){const f={...DEFAULT_STATE,todayDate:TDK(),timezone:TZ};setState(f);localStorage.setItem("sl-v7",JSON.stringify(f));showT("Reset","warn");}},[showT]);
+  const updName=useCallback(v=>{setState(p=>({...p,playerName:v}));},[]);
+  const updTz=useCallback(tz=>{setTZ(tz);setState(p=>({...p,timezone:tz}));setHour(NOW_H());showT("Timezone updated","stat");},[showT]);
 
   if(loading||!state) return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#0a0a12",position:"relative"}},
     React.createElement("div",{style:{position:"absolute",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle,rgba(99,102,241,.3),transparent)",animation:"pulse-glow 2s infinite"}}),
@@ -483,6 +467,7 @@ function App() {
     React.createElement("div",{style:{padding:"16px 16px 10px",background:"linear-gradient(180deg,rgba(99,102,241,.08),transparent)",borderBottom:"1px solid rgba(99,102,241,.15)",flexShrink:0}},
       React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}},
         React.createElement("div",null,
+          React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:13,fontWeight:700,color:"#e2e8f0",letterSpacing:1,marginBottom:1}},state.playerName||"Hunter"),
           React.createElement("p",{style:{fontFamily:"'Cinzel',serif",fontSize:10,color:"#818cf8",letterSpacing:3,textTransform:"uppercase"}},state.title),
           React.createElement("p",{style:{fontFamily:"'Orbitron'",fontSize:24,fontWeight:900,lineHeight:1}},`LV. ${state.level}`),
         ),
@@ -501,7 +486,7 @@ function App() {
 
     // Tabs
     React.createElement("div",{style:{display:"flex",flexShrink:0,background:"rgba(10,10,18,.95)",borderBottom:"1px solid rgba(99,102,241,.1)"}},
-      [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["stats","📊 Stats"]].map(([k,l])=>
+      [["quests","⚔️ Quests"],["workout","🏋️ Train"],["timers","⏰ Timers"],["stats","📊 Stats"],["settings","⚙️ More"]].map(([k,l])=>
         React.createElement("button",{key:k,onClick:()=>setTab(k),style:{flex:1,padding:"10px 0",border:"none",background:"transparent",color:tab===k?"#818cf8":"#64748b",fontFamily:"'Rajdhani'",fontSize:12,fontWeight:600,cursor:"pointer",borderBottom:tab===k?"2px solid #818cf8":"2px solid transparent",position:"relative"}},
           l, k==="stats"&&state.statPoints>0&&React.createElement("span",{style:{position:"absolute",top:3,right:"15%",background:"#ef4444",color:"#fff",fontSize:8,fontFamily:"'Orbitron'",width:14,height:14,borderRadius:7,display:"inline-flex",alignItems:"center",justifyContent:"center"}},state.statPoints)
         )
@@ -513,7 +498,8 @@ function App() {
       tab==="quests" && React.createElement(QuestsTab,{active:activeQ,done:doneQ,failed:failQ,upcoming:upQ,cq:state.customQuests,completed:state.completedToday,h,onDo:doQuest,onAdd:()=>setShowCM(true),onDel:delCQ}),
       tab==="workout" && React.createElement(WorkoutTab,{qs:WORKOUT_QUESTS,dn:state.completedToday,onDo:doQuest,lv:state.level,rk:wRank,sRk:setWRank}),
       tab==="timers" && React.createElement(TimersTab,{ts:state.timerSettings,onTog:togTmr,onUpd:updTmr,nOn:state.notificationsEnabled,onEN:enNotif,cnt:state.timerCompletionsToday||0,onTst:tstTmr}),
-      tab==="stats" && React.createElement(StatsTab,{state,onAl:allocS,onRst:resetG}),
+      tab==="stats" && React.createElement(StatsTab,{state,onAl:allocS}),
+      tab==="settings" && React.createElement(SettingsTab,{state,onName:updName,onTz:updTz,onRst:resetG}),
     ),
   );
 }
@@ -678,7 +664,7 @@ function TimersTab({ts,onTog,onUpd,nOn,onEN,cnt,onTst}) {
 }
 
 /* ═══════════════════ STATS TAB ═══════════════════ */
-function StatsTab({state,onAl,onRst}) {
+function StatsTab({state,onAl}) {
   const mx=Math.max(...Object.values(state.stats),10);
   const cl={STR:"#ef4444",VIT:"#22c55e",AGI:"#3b82f6",INT:"#a855f7",CHA:"#f59e0b"};
   return React.createElement("div",null,
@@ -705,7 +691,28 @@ function StatsTab({state,onAl,onRst}) {
         )
       )
     ),
-    React.createElement("button",{onClick:onRst,style:{width:"100%",padding:10,borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"}},"Reset Progress"),
+  );
+}
+
+/* ═══════════════════ SETTINGS TAB ═══════════════════ */
+function SettingsTab({state,onName,onTz,onRst}) {
+  const tzOpts = TZ_LIST.includes(state.timezone) ? TZ_LIST : [state.timezone,...TZ_LIST];
+  const cardS = {background:"rgba(30,41,59,.3)",border:"1px solid rgba(99,102,241,.1)",borderRadius:12,padding:14,marginBottom:14};
+  return React.createElement("div",null,
+    React.createElement("p",{style:secS},"⚙️ Settings"),
+    React.createElement("div",{style:cardS},
+      React.createElement("label",{style:mlS},"Hunter Name"),
+      React.createElement("input",{value:state.playerName||"",onChange:e=>onName(e.target.value.slice(0,20)),placeholder:"Your name",maxLength:20,style:miS}),
+      React.createElement("label",{style:mlS},"Timezone"),
+      React.createElement("select",{value:state.timezone,onChange:e=>onTz(e.target.value),style:msS},
+        tzOpts.map(tz=>React.createElement("option",{key:tz,value:tz},tz))
+      ),
+      React.createElement("p",{style:{fontSize:11,color:"#64748b",marginTop:8,lineHeight:1.4}},"Quest time windows and the daily reset follow this timezone."),
+    ),
+    React.createElement("div",{style:cardS},
+      React.createElement("p",{style:{fontSize:12,color:"#94a3b8",marginBottom:10,lineHeight:1.4}},"Progress is saved on this device. Cloud sync across devices is coming soon."),
+      React.createElement("button",{onClick:onRst,style:{width:"100%",padding:10,borderRadius:8,border:"1px solid rgba(239,68,68,.3)",background:"rgba(239,68,68,.08)",color:"#f87171",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Rajdhani'"}},"Reset All Progress"),
+    ),
   );
 }
 

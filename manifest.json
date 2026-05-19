@@ -2,7 +2,7 @@
   "name": "Solo Leveling Life",
   "short_name": "SL Life",
   "description": "Solo Leveling themed life RPG tracker",
-  "start_url": "./status-window.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a12",
