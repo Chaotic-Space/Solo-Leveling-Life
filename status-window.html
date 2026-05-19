@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a12">
+  <title>Solo Leveling Life</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0a0a12;--panel:#10101c;--card:#161625;--bar-bg:#1c1c30;
+      --border:#2a2a45;--text:#c8c8e0;--dim:#6a6a8a;--bright:#e8e8ff;
+      --accent:#5b7fff;--accent-g:#5b7fff40;--gold:#ffd700;--gold-g:#ffd70030;
+      --hp-hi:#22c55e;--hp-mid:#f59e0b;--hp-lo:#ef4444;
+      --mp:#8b5cf6;--boss:#ef4444;
+      --str:#ef4444;--vit:#22c55e;--agi:#f59e0b;--int:#8b5cf6;--cha:#ec4899;
+      --rE:#7a7a7a;--rD:#4ade80;--rC:#60a5fa;--rB:#c084fc;--rA:#f59e0b;--rS:#ef4444;
+    }
+    html,body{height:100%;overflow:hidden}
+    body{font-family:'Rajdhani',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+    .app{display:flex;flex-direction:column;height:100vh;max-width:520px;margin:0 auto;overflow:hidden}
+
+    /* ── TOAST ── */
+    #toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100;
+      font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:1px;
+      padding:10px 24px;border-radius:6px;opacity:0;transition:opacity .3s;pointer-events:none;
+      text-align:center;max-width:90vw;white-space:nowrap}
+    #toast.show{opacity:1}
+    #toast.xp{background:#5b7fff20;color:var(--accent);border:1px solid var(--accent)}
+    #toast.lvl{background:#ffd70020;color:var(--gold);border:1px solid var(--gold)}
+    #toast.boss{background:#ef444420;color:var(--boss);border:1px solid var(--boss)}
+    #toast.fail{background:#ef444420;color:var(--boss);border:1px solid var(--boss)}
+    #toast.rank{background:#ffd70015;color:var(--gold);border:1px solid var(--gold);
+      font-size:15px;text-shadow:0 0 12px var(--gold)}
+
+    /* ── HEADER ── */
+    .hdr{padding:12px 16px 8px;flex-shrink:0;border-bottom:1px solid var(--border);background:var(--panel)}
+    .hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .hdr-name{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--bright)}
+    .hdr-sub{font-size:12px;color:var(--dim);margin-top:1px}
+    .hdr-right{text-align:right}
+    .hdr-lv{font-family:'Orbitron',monospace;font-size:12px;color:var(--dim);letter-spacing:1px}
+    .hdr-lv span{color:var(--bright);font-weight:700}
+    .rank-badge{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;
+      padding:2px 10px;border-radius:5px;border:2px solid;line-height:1;
+      text-shadow:0 0 10px currentColor;display:inline-block;margin-top:2px}
+
+    .bars{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+    .bar-row{display:flex;align-items:center;gap:8px}
+    .bar-label{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;width:20px;color:var(--dim)}
+    .bar-track{flex:1;height:6px;background:var(--bar-bg);border-radius:3px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+    .bar-fill.hp-hi{background:linear-gradient(90deg,#16a34a,var(--hp-hi))}
+    .bar-fill.hp-mid{background:linear-gradient(90deg,#d97706,var(--hp-mid))}
+    .bar-fill.hp-lo{background:linear-gradient(90deg,#dc2626,var(--hp-lo))}
+    .bar-fill.mp{background:linear-gradient(90deg,#7c3aed,var(--mp))}
+    .bar-fill.xp{background:linear-gradient(90deg,var(--accent),#8ba4ff);box-shadow:0 0 6px var(--accent-g)}
+    .bar-fill.boss{background:linear-gradient(90deg,#dc2626,var(--boss))}
+    .bar-nums{font-family:'Barlow Condensed',monospace;font-size:11px;color:var(--dim);width:70px;text-align:right}
+
+    .boss-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+    .boss-name{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;color:var(--boss);width:auto;white-space:nowrap}
+    .boss-reward{font-family:'Barlow Condensed',monospace;font-size:10px;color:var(--gold)}
+
+    /* ── TAB BAR ── */
+    .tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--border);background:var(--panel)}
+    .tab{flex:1;padding:10px 0;text-align:center;font-family:'Orbitron',monospace;font-size:10px;
+      letter-spacing:1.5px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;
+      transition:color .2s,border-color .2s;-webkit-tap-highlight-color:transparent;
+      text-transform:uppercase;min-height:44px;display:flex;align-items:center;justify-content:center}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .tab:active{opacity:.7}
+
+    /* ── MAIN CONTENT ── */
+    .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 80px}
+    .content::-webkit-scrollbar{width:4px}
+    .content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    .sec-title{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;
+      color:var(--dim);text-transform:uppercase;padding:14px 16px 8px}
+    .sec-count{color:var(--accent);font-weight:700}
+
+    /* ── QUEST ITEMS ── */
+    .qi{display:flex;align-items:center;padding:10px 16px;min-height:52px;
+      border-bottom:1px solid #1a1a2e;cursor:pointer;transition:background .15s;
+      -webkit-tap-highlight-color:transparent}
+    .qi:active{background:#1a1a30}
+    .qi.done{opacity:.5;cursor:default}
+    .qi.done:active{background:transparent}
+    .qi.failed{opacity:.6;cursor:default}
+    .qi.failed:active{background:transparent}
+    .qi.upcoming{opacity:.4;cursor:default}
+    .qi.upcoming:active{background:transparent}
+    .qi-icon{font-size:18px;width:32px;text-align:center;flex-shrink:0}
+    .qi-body{flex:1;margin:0 10px;min-width:0}
+    .qi-name{font-size:14px;font-weight:600;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .qi.done .qi-name{text-decoration:line-through;color:var(--dim)}
+    .qi.failed .qi-name{color:var(--hp-lo)}
+    .qi-desc{font-size:11px;color:var(--dim)}
+    .qi-right{text-align:right;flex-shrink:0}
+    .qi-xp{font-family:'Barlow Condensed',monospace;font-size:13px;font-weight:600;color:var(--accent)}
+    .qi.done .qi-xp{color:var(--hp-hi)}
+    .qi.failed .qi-xp{color:var(--hp-lo)}
+    .qi-stat{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:.5px}
+    .qi-time{font-size:10px;color:var(--dim);margin-top:1px}
+    .qi-check{font-size:16px;margin-right:4px}
+
+    /* ── WORKOUT TIER HEADER ── */
+    .tier-hdr{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;
+      padding:12px 16px 6px;color:var(--dim);display:flex;justify-content:space-between;align-items:baseline}
+    .tier-hdr .tier-badge{font-weight:900;padding:1px 6px;border-radius:3px;border:1px solid}
+    .tier-locked{opacity:.35;pointer-events:none}
+
+    /* ── TIMER ITEMS ── */
+    .ti{display:flex;align-items:center;padding:14px 16px;min-height:56px;border-bottom:1px solid #1a1a2e}
+    .ti-icon{font-size:20px;width:36px;text-align:center;flex-shrink:0}
+    .ti-body{flex:1;margin:0 10px}
+    .ti-name{font-size:14px;font-weight:600;color:var(--bright)}
+    .ti-interval{font-size:11px;color:var(--dim)}
+    .ti-countdown{font-family:'Barlow Condensed',monospace;font-size:20px;font-weight:600;color:var(--accent);min-width:60px;text-align:center}
+    .ti-btn{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:1px;
+      padding:8px 16px;border-radius:4px;border:1px solid var(--accent);color:var(--accent);
+      background:transparent;cursor:pointer;min-height:40px;min-width:70px;
+      -webkit-tap-highlight-color:transparent;transition:background .15s}
+    .ti-btn:active{background:var(--accent-g)}
+    .ti-btn.claim{border-color:var(--gold);color:var(--gold);animation:pulse-gold 1s infinite}
+    .ti-btn.running{border-color:var(--dim);color:var(--dim)}
+
+    /* ── STAT BARS (Stats tab) ── */
+    .stat-row{display:flex;align-items:center;padding:8px 16px;gap:10px}
+    .stat-label{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;width:36px;letter-spacing:1px}
+    .stat-bar-bg{flex:1;height:10px;background:var(--bar-bg);border-radius:5px;overflow:hidden}
+    .stat-bar-fill{height:100%;border-radius:5px;transition:width .6s ease}
+    .stat-val{font-family:'Barlow Condensed',monospace;font-size:15px;font-weight:600;color:var(--bright);width:50px;text-align:right}
+
+    /* ── ACHIEVEMENTS ── */
+    .ach{display:flex;align-items:center;padding:10px 16px;min-height:48px;border-bottom:1px solid #1a1a2e}
+    .ach.locked{opacity:.35}
+    .ach-icon{font-size:18px;width:32px;text-align:center}
+    .ach-body{flex:1;margin:0 10px}
+    .ach-name{font-size:13px;font-weight:600;color:var(--bright)}
+    .ach.locked .ach-name{color:var(--dim)}
+    .ach-desc{font-size:11px;color:var(--dim)}
+    .ach-status{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px}
+    .ach-status.unlocked{color:var(--gold)}
+    .ach-status.locked-text{color:var(--dim)}
+
+    /* ── SUMMARY STATS ── */
+    .summary{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);margin:0 16px 16px;border-radius:8px;overflow:hidden}
+    .sum-item{background:var(--panel);padding:14px;text-align:center}
+    .sum-val{font-family:'Barlow Condensed',monospace;font-size:22px;font-weight:700;color:var(--bright)}
+    .sum-lbl{font-size:10px;color:var(--dim);letter-spacing:.5px;margin-top:2px}
+
+    /* ── FOOTER ── */
+    .ftr{position:fixed;bottom:0;left:0;right:0;text-align:center;padding:8px;
+      font-size:10px;color:var(--dim);background:var(--bg);border-top:1px solid var(--border)}
+    .ftr a{color:var(--accent);text-decoration:none}
+
+    /* ── ANIMATIONS ── */
+    @keyframes pulse-gold{0%,100%{box-shadow:0 0 4px var(--gold-g)}50%{box-shadow:0 0 12px var(--gold)}}
+    @keyframes flash-green{0%{background:#22c55e20}100%{background:transparent}}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+    .flash-green{animation:flash-green .4s ease}
+    .shake{animation:shake .3s ease}
+
+    /* ── WEEKLY BOSS ── */
+    .wboss-row{display:flex;align-items:center;gap:8px;padding:2px 0}
+    .wboss-name{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;color:var(--gold);white-space:nowrap}
+    .bar-fill.wboss{background:linear-gradient(90deg,#b91c1c,#fbbf24);box-shadow:0 0 6px #fbbf2440}
+
+    /* ── WEATHER BANNER ── */
+    .weather-banner{display:flex;align-items:center;gap:8px;padding:6px 16px;
+      background:#5b7fff10;border-bottom:1px solid var(--border);font-size:12px}
+    .weather-banner .w-icon{font-size:18px}
+    .weather-banner .w-text{color:var(--dim);flex:1}
+    .weather-banner .w-quest{color:var(--gold);font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px}
+
+    /* ── EVENT MODAL ── */
+    .event-overlay{position:fixed;inset:0;background:#0a0a12e0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+    .event-card{background:var(--panel);border:1px solid var(--gold);border-radius:10px;padding:28px 24px;max-width:360px;width:100%;text-align:center;animation:fadeIn .3s ease}
+    .event-card .ev-icon{font-size:40px;margin-bottom:12px}
+    .event-card .ev-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--gold);letter-spacing:1.5px;margin-bottom:8px}
+    .event-card .ev-desc{font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.5}
+    .event-card .ev-btn{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1px;padding:10px 28px;border-radius:5px;
+      border:1px solid var(--gold);color:var(--gold);background:transparent;cursor:pointer;min-height:44px;
+      -webkit-tap-highlight-color:transparent}
+    .event-card .ev-btn:active{background:#ffd70020}
+
+    /* ── CHAIN ITEMS ── */
+    .chain-item{padding:12px 16px;border-bottom:1px solid #1a1a2e}
+    .chain-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+    .chain-name{font-size:14px;font-weight:600;color:var(--bright)}
+    .chain-progress{font-family:'Barlow Condensed',monospace;font-size:13px;color:var(--accent)}
+    .chain-desc{font-size:11px;color:var(--dim)}
+    .chain-step{font-size:12px;color:var(--text);margin-top:4px}
+    .chain-step.active{color:var(--gold)}
+    .chain-bar{width:100%;height:4px;background:var(--bar-bg);border-radius:2px;margin-top:6px;overflow:hidden}
+    .chain-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),#fbbf24);border-radius:2px;transition:width .4s}
+
+    /* scrollbar for desktop */
+    @media(min-width:521px){.content{padding:0 0 40px}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div id="toast"></div>
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-top">
+      <div>
+        <div class="hdr-name" id="h-name">AKASH</div>
+        <div class="hdr-sub" id="h-title">E-Rank Hunter</div>
+      </div>
+      <div class="hdr-right">
+        <div class="hdr-lv">LV. <span id="h-lv">1</span></div>
+        <div class="rank-badge" id="h-rank" style="color:var(--rE);border-color:var(--rE)">E</div>
+      </div>
+    </div>
+    <div class="bars">
+      <div class="bar-row">
+        <span class="bar-label">HP</span>
+        <div class="bar-track"><div class="bar-fill hp-hi" id="hp-bar" style="width:100%"></div></div>
+        <span class="bar-nums" id="hp-nums">105 / 105</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">MP</span>
+        <div class="bar-track"><div class="bar-fill mp" id="mp-bar" style="width:100%"></div></div>
+        <span class="bar-nums" id="mp-nums">50 / 50</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">XP</span>
+        <div class="bar-track"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
+        <span class="bar-nums" id="xp-nums">0 / 100</span>
+      </div>
+      <div class="boss-row" id="boss-section">
+        <span class="boss-name" id="boss-name">VOID SENTINEL</span>
+        <div class="bar-track" style="flex:1"><div class="bar-fill boss" id="boss-bar" style="width:100%"></div></div>
+        <span class="bar-nums" id="boss-nums">120 / 120</span>
+      </div>
+      <div class="wboss-row" id="wboss-section">
+        <span class="wboss-name" id="wboss-name">⚔ WEEKLY: SHADOW MONARCH</span>
+        <div class="bar-track" style="flex:1"><div class="bar-fill wboss" id="wboss-bar" style="width:100%"></div></div>
+        <span class="bar-nums" id="wboss-nums">600 / 600</span>
+      </div>
+    </div>
+  </div>
+  <div class="weather-banner" id="weather-banner" style="display:none">
+    <span class="w-icon" id="w-icon"></span>
+    <span class="w-text" id="w-text"></span>
+    <span class="w-quest" id="w-quest"></span>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabs">
+    <div class="tab active" data-tab="quests">Quests</div>
+    <div class="tab" data-tab="train">Train</div>
+    <div class="tab" data-tab="timers">Timers</div>
+    <div class="tab" data-tab="stats">Stats</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content"></div>
+
+  <div class="ftr"><span id="ftr-time"></span> &middot; <a href="dashboard-custom.html">Dashboard</a></div>
+</div>
+<div class="event-overlay" id="event-overlay" style="display:none">
+  <div class="event-card">
+    <div class="ev-icon" id="ev-icon"></div>
+    <div class="ev-title" id="ev-title"></div>
+    <div class="ev-desc" id="ev-desc"></div>
+    <button class="ev-btn" id="ev-btn">ACCEPT</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DEFAULT STATE — mirrors player.json
+// ═══════════════════════════════════════════════════════════════
+const DEFAULT = {
+  as_of: "", name: "AKASH",
+  total_xp: 0, level: 1, xp_to_next_level: 100,
+  rank: "E", title: "E-Rank Hunter",
+  hp: 105, max_hp: 105, mp: 50, max_mp: 50,
+  stats: { STR: 0, VIT: 0, AGI: 0, INT: 0, CHA: 0 },
+  streak: 0,
+  leveling_curve: [0,100,250,500,850,1300,1900,2600,3500,4600,5900,7500,9400,11600,14200,17200,20700,24700,29300,34500,40500],
+  rank_thresholds: { E:[1,2], D:[3,5], C:[6,9], B:[10,13], A:[14,17], S:[18,null] },
+  rank_titles: { E:"E-Rank Hunter", D:"D-Rank Hunter", C:"B-Rank Hunter", B:"S-Rank Hunter", A:"National-Level Hunter", S:"Shadow Monarch" },
+  rank_colors: { E:"#7a7a7a", D:"#4ade80", C:"#60a5fa", B:"#c084fc", A:"#f59e0b", S:"#ef4444" },
+  daily_quests: [
+    {id:"wake",icon:"⏰",name:"Wake Up",desc:"Rise before deadline",xp:20,stat:"INT",pen:15,from:5,to:7},
+    {id:"bed",icon:"🛏️",name:"Make Bed",desc:"Make your bed",xp:8,stat:"CHA",pen:5,from:5,to:9},
+    {id:"brkf",icon:"🍳",name:"Breakfast",desc:"Eat a proper breakfast",xp:12,stat:"VIT",pen:8,from:6,to:10},
+    {id:"mw1",icon:"💧",name:"Morning Water",desc:"First glass of water",xp:10,stat:"VIT",pen:5,from:5,to:9},
+    {id:"mstr",icon:"🤸",name:"Morning Stretch",desc:"Stretch or yoga 5 min",xp:12,stat:"AGI",pen:8,from:5,to:10},
+    {id:"w2",icon:"💧",name:"Mid-Morning Water",desc:"Keep drinking water",xp:10,stat:"VIT",pen:5,from:10,to:13},
+    {id:"lunch",icon:"🥗",name:"Healthy Lunch",desc:"Eat a proper meal",xp:15,stat:"VIT",pen:10,from:11,to:14},
+    {id:"walk1",icon:"🚶",name:"Afternoon Walk",desc:"Any physical activity 10 min",xp:15,stat:"AGI",pen:10,from:11,to:17},
+    {id:"post",icon:"🧍",name:"Posture Check",desc:"Fix posture, stand tall",xp:8,stat:"VIT",pen:5,from:10,to:18},
+    {id:"w3",icon:"🌊",name:"Afternoon Hydration",desc:"Keep drinking water",xp:10,stat:"VIT",pen:5,from:13,to:19},
+    {id:"snack",icon:"🍎",name:"Healthy Snack",desc:"Fruit or nuts, not junk",xp:10,stat:"VIT",pen:8,from:14,to:18},
+    {id:"eyes",icon:"👁️",name:"Eye Rest",desc:"Look away from screen 5 min",xp:8,stat:"VIT",pen:5,from:10,to:20},
+    {id:"move",icon:"🏃",name:"Get Moving",desc:"Any physical activity 10 min",xp:15,stat:"AGI",pen:10,from:14,to:21},
+    {id:"learn",icon:"📖",name:"Learn Something",desc:"Read or watch educational",xp:15,stat:"INT",pen:10,from:9,to:21},
+    {id:"dinner",icon:"🍽️",name:"Proper Dinner",desc:"Eat a balanced dinner",xp:12,stat:"VIT",pen:8,from:18,to:22},
+    {id:"w4",icon:"💧",name:"Evening Water",desc:"Keep hydrated",xp:10,stat:"VIT",pen:5,from:18,to:23},
+    {id:"clean",icon:"🧹",name:"Clean Space",desc:"Tidy desk or room",xp:10,stat:"CHA",pen:5,from:17,to:23},
+    {id:"jrnl",icon:"📝",name:"Journal",desc:"Write in log/journal",xp:12,stat:"INT",pen:8,from:19,to:24},
+    {id:"social",icon:"🗣️",name:"Talk to Someone",desc:"Have a real conversation",xp:15,stat:"CHA",pen:8,from:8,to:22},
+    {id:"nojunk",icon:"🛡️",name:"No Junk Food",desc:"Avoid all processed food",xp:30,stat:"CHA",pen:20,from:0,to:24},
+    {id:"steps",icon:"👟",name:"10K Steps",desc:"Hit step count goal",xp:20,stat:"AGI",pen:10,from:6,to:23},
+    {id:"cold",icon:"🧊",name:"Cold Exposure",desc:"Cold shower or ice",xp:15,stat:"STR",pen:10,from:5,to:22},
+    {id:"noscreen",icon:"📵",name:"No Screens After 11",desc:"Screens off by 23:00",xp:20,stat:"INT",pen:15,from:23,to:24},
+    {id:"sleep",icon:"😴",name:"Sleep by 23:30",desc:"In bed, lights out",xp:20,stat:"VIT",pen:15,from:22,to:24}
+  ],
+  workout_quests: [
+    {id:"we1",name:"10 Push-ups",desc:"Basic push-ups",icon:"💪",xp:15,stat:"STR",tier:"E"},
+    {id:"we2",name:"20 Squats",desc:"Bodyweight squats",icon:"🦵",xp:15,stat:"STR",tier:"E"},
+    {id:"we3",name:"30s Plank",desc:"Hold a plank",icon:"🧱",xp:10,stat:"VIT",tier:"E"},
+    {id:"we4",name:"10 Sit-ups",desc:"Basic sit-ups",icon:"🔥",xp:10,stat:"STR",tier:"E"},
+    {id:"we5",name:"1km Run",desc:"Run or jog 1km",icon:"🏃",xp:20,stat:"AGI",tier:"E"},
+    {id:"wd1",name:"20 Push-ups",desc:"Proper form",icon:"💪",xp:25,stat:"STR",tier:"D"},
+    {id:"wd2",name:"40 Squats",desc:"Full depth",icon:"🦵",xp:25,stat:"STR",tier:"D"},
+    {id:"wd3",name:"60s Plank",desc:"1 minute hold",icon:"🧱",xp:20,stat:"VIT",tier:"D"},
+    {id:"wd4",name:"3km Run",desc:"Sustained pace",icon:"🏃",xp:35,stat:"AGI",tier:"D"},
+    {id:"wd5",name:"30 Burpees",desc:"Full burpees",icon:"🔥",xp:30,stat:"STR",tier:"D"},
+    {id:"wc1",name:"40 Push-ups",desc:"No breaks",icon:"💪",xp:40,stat:"STR",tier:"C"},
+    {id:"wc2",name:"60 Squats",desc:"Weighted or pistol",icon:"🦵",xp:40,stat:"STR",tier:"C"},
+    {id:"wc3",name:"2min Plank",desc:"No knee drops",icon:"🧱",xp:35,stat:"VIT",tier:"C"},
+    {id:"wc4",name:"5km Run",desc:"Under 30 min",icon:"🏃",xp:50,stat:"AGI",tier:"C"},
+    {id:"wb1",name:"60 Push-ups",desc:"Diamond or decline",icon:"💪",xp:60,stat:"STR",tier:"B"},
+    {id:"wb2",name:"100 Squats",desc:"Weighted squats",icon:"🦵",xp:60,stat:"STR",tier:"B"},
+    {id:"wb3",name:"3min Plank",desc:"Iron will",icon:"🧱",xp:55,stat:"VIT",tier:"B"},
+    {id:"wb4",name:"10km Run",desc:"Under 55 min",icon:"🏃",xp:80,stat:"AGI",tier:"B"},
+    {id:"wa1",name:"Full Workout",desc:"1hr compound lifts",icon:"⚔️",xp:100,stat:"STR",tier:"A"},
+    {id:"ws1",name:"Monarch Training",desc:"2hr intense session",icon:"👑",xp:200,stat:"STR",tier:"S"}
+  ],
+  timer_defaults: [
+    {id:"t_w",name:"Hydrate",icon:"💧",interval_min:45,xp:8,stat:"VIT"},
+    {id:"t_s",name:"Stretch",icon:"🤸",interval_min:60,xp:8,stat:"AGI"},
+    {id:"t_e",name:"Eye Rest",icon:"👁️",interval_min:30,xp:5,stat:"VIT"},
+    {id:"t_p",name:"Posture",icon:"🧍",interval_min:40,xp:5,stat:"VIT"},
+    {id:"t_b",name:"Breathe",icon:"🌬️",interval_min:90,xp:10,stat:"INT"}
+  ],
+  daily_boss: { name:"Void Sentinel", max_hp:120, reward_xp:200 },
+  achievements: [
+    {id:"first_blood",name:"First Blood",desc:"Complete your first quest",unlocked:false},
+    {id:"d_rank",name:"D-Rank Promotion",desc:"Reach D-Rank",unlocked:false},
+    {id:"rising",name:"Rising Hunter",desc:"Reach Level 5",unlocked:false},
+    {id:"a_rank",name:"A-Rank Promotion",desc:"Reach A-Rank",unlocked:false},
+    {id:"s_rank",name:"S-Rank Hunter",desc:"Reach S-Rank",unlocked:false},
+    {id:"national",name:"National Level",desc:"Reach Level 15",unlocked:false},
+    {id:"shadow",name:"Shadow Monarch",desc:"Reach Level 18",unlocked:false},
+    {id:"perfect_day",name:"Perfect Day",desc:"Complete all 24 daily quests",unlocked:false},
+    {id:"week_streak",name:"Iron Will",desc:"7-day completion streak",unlocked:false},
+    {id:"month_streak",name:"Unbreakable",desc:"30-day completion streak",unlocked:false},
+    {id:"boss_slayer",name:"Boss Slayer",desc:"Defeat the daily boss 10 times",unlocked:false},
+    {id:"fit_100",name:"Century",desc:"Complete 100 workout quests",unlocked:false}
+  ],
+  // Runtime state (persisted in localStorage)
+  completed_today: [],
+  failed_today: [],
+  workouts_today: [],
+  boss_hp: 120,
+  boss_defeated_today: false,
+  boss_kills: 0,
+  total_workouts: 0,
+  timers: {},
+  day_streak: 0
+};
+
+const RANK_ORDER = ['E','D','C','B','A','S'];
+const STAT_CLS = {STR:'str',VIT:'vit',AGI:'agi',INT:'int',CHA:'cha'};
+const STORAGE_KEY = 'sl_player_v2';
+
+// ═══════════════════════════════════════════════════════════════
+// STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+let S; // active state
+let activeTab = 'quests';
+let timerInterval = null;
+
+function todayIST() {
+  return new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Kolkata'});
+}
+function hourIST() {
+  return parseInt(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata',hour:'numeric',hour12:false}));
+}
+function minuteIST() {
+  return parseInt(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata',minute:'numeric'}));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      const today = todayIST();
+      if (s.as_of !== today) return newDay(s, today);
+      return s;
+    }
+  } catch(e) { console.error('Load error:', e); }
+  const s = JSON.parse(JSON.stringify(DEFAULT));
+  s.as_of = todayIST();
+  s.boss_hp = s.daily_boss.max_hp;
+  return s;
+}
+
+function newDay(old, today) {
+  // Process yesterday: compute day streak
+  const totalDaily = old.daily_quests.length;
+  const doneCount = (old.completed_today || []).length;
+  // If at least half completed, streak continues
+  if (doneCount >= Math.floor(totalDaily * 0.6)) {
+    old.day_streak = (old.day_streak || 0) + 1;
+  } else {
+    old.day_streak = 0;
+  }
+  // Reset for new day
+  old.as_of = today;
+  old.completed_today = [];
+  old.failed_today = [];
+  old.workouts_today = [];
+  old.hp = old.max_hp;
+  old.boss_hp = old.daily_boss.max_hp;
+  old.boss_defeated_today = false;
+  old.timers = {};
+  return old;
+}
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAME LOGIC
+// ═══════════════════════════════════════════════════════════════
+function recomputeLevel() {
+  const curve = S.leveling_curve;
+  let lvl = 1;
+  for (let i = 1; i < curve.length; i++) {
+    if (S.total_xp >= curve[i]) lvl = i + 1;
+    else break;
+  }
+  const oldLvl = S.level;
+  S.level = lvl;
+  if (lvl < curve.length) {
+    S.xp_to_next_level = curve[lvl] - S.total_xp;
+  } else {
+    S.xp_to_next_level = 0;
+  }
+  // Max HP/MP scale with level
+  S.max_hp = 100 + S.level * 5;
+  S.max_mp = 45 + S.level * 5;
+  if (S.hp > S.max_hp) S.hp = S.max_hp;
+  if (S.mp > S.max_mp) S.mp = S.max_mp;
+  if (lvl > oldLvl) {
+    S.hp = S.max_hp; // Full heal on level up
+    S.mp = S.max_mp;
+    toast(`LEVEL UP! LV.${lvl}`, 'lvl');
+  }
+}
+
+function recomputeRank() {
+  const oldRank = S.rank;
+  for (const [rank, [min, max]] of Object.entries(S.rank_thresholds)) {
+    if (S.level >= min && (max === null || S.level <= max)) {
+      S.rank = rank;
+      S.title = S.rank_titles[rank];
+      break;
+    }
+  }
+  if (S.rank !== oldRank) {
+    toast(`RANK UP: ${S.rank}-RANK — ${S.title}`, 'rank');
+  }
+}
+
+function checkAchievements() {
+  const a = S.achievements;
+  function unlock(id) {
+    const ach = a.find(x => x.id === id);
+    if (ach && !ach.unlocked) { ach.unlocked = true; toast(`Achievement: ${ach.name}`, 'lvl'); }
+  }
+  if (S.completed_today.length > 0 || S.total_workouts > 0) unlock('first_blood');
+  if (RANK_ORDER.indexOf(S.rank) >= RANK_ORDER.indexOf('D')) unlock('d_rank');
+  if (S.level >= 5) unlock('rising');
+  if (RANK_ORDER.indexOf(S.rank) >= RANK_ORDER.indexOf('A')) unlock('a_rank');
+  if (RANK_ORDER.indexOf(S.rank) >= RANK_ORDER.indexOf('S')) unlock('s_rank');
+  if (S.level >= 15) unlock('national');
+  if (S.level >= 18) unlock('shadow');
+  if (S.completed_today.length >= S.daily_quests.length) unlock('perfect_day');
+  if ((S.day_streak || 0) >= 7) unlock('week_streak');
+  if ((S.day_streak || 0) >= 30) unlock('month_streak');
+  if (S.boss_kills >= 10) unlock('boss_slayer');
+  if (S.total_workouts >= 100) unlock('fit_100');
+}
+
+function completeQuest(id) {
+  if (S.completed_today.includes(id) || S.failed_today.includes(id)) return;
+  const q = S.daily_quests.find(x => x.id === id);
+  if (!q) return;
+  const h = hourIST();
+  if (h < q.from || h >= q.to) return;
+
+  S.total_xp += q.xp;
+  S.stats[q.stat] = (S.stats[q.stat] || 0) + q.xp;
+  S.mp = Math.min(S.max_mp, S.mp + Math.floor(q.xp / 3));
+  S.completed_today.push(id);
+
+  // Boss damage
+  S.boss_hp = Math.max(0, S.boss_hp - q.xp);
+  if (S.boss_hp <= 0 && !S.boss_defeated_today) {
+    S.boss_defeated_today = true;
+    S.total_xp += S.daily_boss.reward_xp;
+    S.boss_kills = (S.boss_kills || 0) + 1;
+    toast(`BOSS DEFEATED! +${S.daily_boss.reward_xp} XP`, 'boss');
+  }
+
+  recomputeLevel();
+  recomputeRank();
+  checkAchievements();
+  save();
+  toast(`+${q.xp} XP  [${q.stat}]`, 'xp');
+  renderHeader();
+  if (activeTab === 'quests') renderQuests();
+}
+
+function completeWorkout(id) {
+  if ((S.workouts_today || []).includes(id)) return;
+  const w = S.workout_quests.find(x => x.id === id);
+  if (!w) return;
+  if (RANK_ORDER.indexOf(w.tier) > RANK_ORDER.indexOf(S.rank)) return;
+
+  S.total_xp += w.xp;
+  S.stats[w.stat] = (S.stats[w.stat] || 0) + w.xp;
+  S.mp = Math.min(S.max_mp, S.mp + Math.floor(w.xp / 3));
+  S.total_workouts = (S.total_workouts || 0) + 1;
+  if (!S.workouts_today) S.workouts_today = [];
+  S.workouts_today.push(id);
+
+  // Boss damage from workouts too
+  S.boss_hp = Math.max(0, S.boss_hp - w.xp);
+  if (S.boss_hp <= 0 && !S.boss_defeated_today) {
+    S.boss_defeated_today = true;
+    S.total_xp += S.daily_boss.reward_xp;
+    S.boss_kills = (S.boss_kills || 0) + 1;
+    toast(`BOSS DEFEATED! +${S.daily_boss.reward_xp} XP`, 'boss');
+  }
+
+  recomputeLevel();
+  recomputeRank();
+  checkAchievements();
+  save();
+  toast(`+${w.xp} XP  [${w.stat}]`, 'xp');
+  renderHeader();
+  if (activeTab === 'train') renderTrain();
+}
+
+function processAutoFails() {
+  const h = hourIST();
+  let changed = false;
+  S.daily_quests.forEach(q => {
+    if (h >= q.to && !S.completed_today.includes(q.id) && !S.failed_today.includes(q.id)) {
+      S.failed_today.push(q.id);
+      S.hp = Math.max(0, S.hp - q.pen);
+      changed = true;
+    }
+  });
+  if (changed) { save(); renderHeader(); if (activeTab === 'quests') renderQuests(); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TIMER LOGIC
+// ═══════════════════════════════════════════════════════════════
+function startTimer(id) {
+  if (!S.timers) S.timers = {};
+  S.timers[id] = { started: Date.now(), claims: (S.timers[id]?.claims || 0) };
+  save();
+  if (activeTab === 'timers') renderTimers();
+}
+
+function claimTimer(id) {
+  const t = S.timer_defaults.find(x => x.id === id);
+  if (!t) return;
+  S.total_xp += t.xp;
+  S.stats[t.stat] = (S.stats[t.stat] || 0) + t.xp;
+  S.timers[id] = { started: Date.now(), claims: (S.timers[id]?.claims || 0) + 1 };
+  recomputeLevel();
+  recomputeRank();
+  save();
+  toast(`+${t.xp} XP  [${t.stat}]`, 'xp');
+  renderHeader();
+  if (activeTab === 'timers') renderTimers();
+}
+
+function stopTimer(id) {
+  if (S.timers && S.timers[id]) {
+    const claims = S.timers[id].claims || 0;
+    delete S.timers[id];
+    save();
+  }
+  if (activeTab === 'timers') renderTimers();
+}
+
+function getTimerRemaining(id) {
+  const td = S.timer_defaults.find(x => x.id === id);
+  const ts = S.timers?.[id];
+  if (!td || !ts) return null;
+  const elapsed = Date.now() - ts.started;
+  const total = td.interval_min * 60 * 1000;
+  const rem = total - elapsed;
+  return rem;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+let toastTimeout;
+function toast(msg, cls) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + cls;
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { el.className = ''; }, 2000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════
+function renderHeader() {
+  document.getElementById('h-name').textContent = S.name;
+  document.getElementById('h-title').textContent = S.title;
+  document.getElementById('h-lv').textContent = S.level;
+
+  const rc = S.rank_colors[S.rank] || '#7a7a7a';
+  const badge = document.getElementById('h-rank');
+  badge.textContent = S.rank;
+  badge.style.color = rc;
+  badge.style.borderColor = rc;
+  badge.style.textShadow = `0 0 10px ${rc}`;
+
+  // HP bar
+  const hpPct = S.max_hp > 0 ? (S.hp / S.max_hp * 100) : 0;
+  const hpBar = document.getElementById('hp-bar');
+  hpBar.style.width = hpPct + '%';
+  hpBar.className = 'bar-fill ' + (hpPct > 70 ? 'hp-hi' : hpPct > 30 ? 'hp-mid' : 'hp-lo');
+  document.getElementById('hp-nums').textContent = `${S.hp} / ${S.max_hp}`;
+
+  // MP bar
+  const mpPct = S.max_mp > 0 ? (S.mp / S.max_mp * 100) : 0;
+  document.getElementById('mp-bar').style.width = mpPct + '%';
+  document.getElementById('mp-nums').textContent = `${S.mp} / ${S.max_mp}`;
+
+  // XP bar
+  const curve = S.leveling_curve;
+  let xpInLevel, xpNeeded;
+  if (S.level < curve.length) {
+    const base = curve[S.level - 1] || 0;
+    const next = curve[S.level] || base;
+    xpInLevel = S.total_xp - base;
+    xpNeeded = next - base;
+  } else {
+    xpInLevel = 0; xpNeeded = 1;
+  }
+  const xpPct = xpNeeded > 0 ? Math.min(100, xpInLevel / xpNeeded * 100) : 100;
+  document.getElementById('xp-bar').style.width = xpPct + '%';
+  document.getElementById('xp-nums').textContent = `${xpInLevel} / ${xpNeeded}`;
+
+  // Boss
+  const bossPct = S.daily_boss.max_hp > 0 ? (S.boss_hp / S.daily_boss.max_hp * 100) : 0;
+  document.getElementById('boss-bar').style.width = bossPct + '%';
+  document.getElementById('boss-nums').textContent = S.boss_defeated_today
+    ? 'DEFEATED' : `${S.boss_hp} / ${S.daily_boss.max_hp}`;
+  document.getElementById('boss-name').textContent = S.boss_defeated_today
+    ? '☠ ' + S.daily_boss.name.toUpperCase() : '⚔ ' + S.daily_boss.name.toUpperCase();
+}
+
+function renderQuests() {
+  const c = document.getElementById('content');
+  const h = hourIST();
+  const active = [], done = [], upcoming = [], failed = [];
+
+  S.daily_quests.forEach(q => {
+    if (S.completed_today.includes(q.id)) done.push(q);
+    else if (S.failed_today.includes(q.id)) failed.push(q);
+    else if (h >= q.from && h < q.to) active.push(q);
+    else if (h < q.from) upcoming.push(q);
+    else failed.push(q); // past window, not yet marked
+  });
+
+  // Process newly expired quests
+  failed.forEach(q => {
+    if (!S.failed_today.includes(q.id) && !S.completed_today.includes(q.id)) {
+      S.failed_today.push(q.id);
+      S.hp = Math.max(0, S.hp - q.pen);
+    }
+  });
+
+  let html = '';
+  if (active.length) {
+    html += `<div class="sec-title">ACTIVE NOW <span class="sec-count">${active.length}</span></div>`;
+    html += active.map(q => questRow(q, 'active')).join('');
+  }
+  if (done.length) {
+    html += `<div class="sec-title">COMPLETED <span class="sec-count">${done.length}</span></div>`;
+    html += done.map(q => questRow(q, 'done')).join('');
+  }
+  if (upcoming.length) {
+    html += `<div class="sec-title">COMING UP <span class="sec-count">${upcoming.length}</span></div>`;
+    html += upcoming.map(q => questRow(q, 'upcoming')).join('');
+  }
+  if (failed.length) {
+    html += `<div class="sec-title">MISSED <span class="sec-count">${failed.length}</span></div>`;
+    html += failed.map(q => questRow(q, 'failed')).join('');
+  }
+  c.innerHTML = html;
+
+  // Bind click events for active quests
+  c.querySelectorAll('.qi[data-action="complete"]').forEach(el => {
+    el.addEventListener('click', () => {
+      el.classList.add('flash-green');
+      completeQuest(el.dataset.id);
+    });
+  });
+}
+
+function questRow(q, status) {
+  const sc = STAT_CLS[q.stat] || 'vit';
+  const statColor = getComputedStyle(document.documentElement).getPropertyValue('--' + sc).trim();
+  const timeStr = status === 'upcoming' ? `${String(q.from).padStart(2,'0')}:00 - ${String(q.to).padStart(2,'0')}:00`
+    : status === 'active' ? `ends ${String(q.to).padStart(2,'0')}:00`
+    : status === 'failed' ? `-${q.pen} HP` : '';
+  const xpStr = status === 'done' ? `✓ ${q.xp}` : status === 'failed' ? `-${q.pen}` : `+${q.xp}`;
+  const action = status === 'active' ? 'data-action="complete"' : '';
+  return `<div class="qi ${status}" ${action} data-id="${q.id}">
+    <div class="qi-icon">${q.icon}</div>
+    <div class="qi-body">
+      <div class="qi-name">${q.name}</div>
+      <div class="qi-desc">${q.desc}</div>
+    </div>
+    <div class="qi-right">
+      <div class="qi-xp">${xpStr} XP</div>
+      <div class="qi-stat" style="color:${statColor}">${q.stat}</div>
+      <div class="qi-time">${timeStr}</div>
+    </div>
+  </div>`;
+}
+
+function renderTrain() {
+  const c = document.getElementById('content');
+  const tiers = {};
+  S.workout_quests.forEach(w => {
+    if (!tiers[w.tier]) tiers[w.tier] = [];
+    tiers[w.tier].push(w);
+  });
+
+  let html = '';
+  RANK_ORDER.forEach(tier => {
+    if (!tiers[tier]) return;
+    const available = RANK_ORDER.indexOf(tier) <= RANK_ORDER.indexOf(S.rank);
+    const rc = S.rank_colors[tier] || '#7a7a7a';
+    html += `<div class="tier-hdr ${available ? '' : 'tier-locked'}">
+      <span>${tier}-TIER TRAINING</span>
+      <span class="tier-badge" style="color:${rc};border-color:${rc}">${tier}</span>
+    </div>`;
+    tiers[tier].forEach(w => {
+      const done = (S.workouts_today || []).includes(w.id);
+      const sc = STAT_CLS[w.stat] || 'str';
+      const statColor = getComputedStyle(document.documentElement).getPropertyValue('--' + sc).trim();
+      const cls = done ? 'done' : available ? '' : 'upcoming';
+      const action = !done && available ? `data-action="workout"` : '';
+      html += `<div class="qi ${cls} ${available ? '' : 'tier-locked'}" ${action} data-id="${w.id}">
+        <div class="qi-icon">${w.icon}</div>
+        <div class="qi-body">
+          <div class="qi-name">${w.name}</div>
+          <div class="qi-desc">${w.desc}</div>
+        </div>
+        <div class="qi-right">
+          <div class="qi-xp">${done ? '✓' : '+'} ${w.xp} XP</div>
+          <div class="qi-stat" style="color:${statColor}">${w.stat}</div>
+        </div>
+      </div>`;
+    });
+  });
+  c.innerHTML = html;
+
+  c.querySelectorAll('.qi[data-action="workout"]').forEach(el => {
+    el.addEventListener('click', () => {
+      el.classList.add('flash-green');
+      completeWorkout(el.dataset.id);
+    });
+  });
+}
+
+function renderTimers() {
+  const c = document.getElementById('content');
+  let html = '<div class="sec-title">RECURRING TIMERS</div>';
+  S.timer_defaults.forEach(t => {
+    const ts = S.timers?.[t.id];
+    const isRunning = !!ts;
+    const rem = isRunning ? getTimerRemaining(t.id) : null;
+    const canClaim = isRunning && rem !== null && rem <= 0;
+    const claims = ts?.claims || 0;
+
+    let countdown = '';
+    let btnText = 'START';
+    let btnClass = '';
+
+    if (isRunning && !canClaim) {
+      const secs = Math.max(0, Math.ceil(rem / 1000));
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      countdown = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      btnText = 'STOP';
+      btnClass = 'running';
+    } else if (canClaim) {
+      countdown = '00:00';
+      btnText = 'CLAIM';
+      btnClass = 'claim';
+    }
+
+    const sc = STAT_CLS[t.stat] || 'vit';
+    const statColor = getComputedStyle(document.documentElement).getPropertyValue('--' + sc).trim();
+
+    html += `<div class="ti">
+      <div class="ti-icon">${t.icon}</div>
+      <div class="ti-body">
+        <div class="ti-name">${t.name} <span style="color:${statColor};font-size:11px;font-family:Orbitron;letter-spacing:1px">${t.stat}</span></div>
+        <div class="ti-interval">Every ${t.interval_min}min &middot; +${t.xp} XP${claims > 0 ? ` &middot; ${claims} claimed` : ''}</div>
+      </div>
+      ${isRunning ? `<div class="ti-countdown">${countdown}</div>` : ''}
+      <button class="ti-btn ${btnClass}" data-timer="${t.id}" data-action="${canClaim ? 'claim' : isRunning ? 'stop' : 'start'}">${btnText}</button>
+    </div>`;
+  });
+  c.innerHTML = html;
+
+  c.querySelectorAll('.ti-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.timer;
+      const act = el.dataset.action;
+      if (act === 'start') startTimer(id);
+      else if (act === 'claim') claimTimer(id);
+      else if (act === 'stop') stopTimer(id);
+    });
+  });
+}
+
+function renderStats() {
+  const c = document.getElementById('content');
+  const maxStat = Math.max(1, ...Object.values(S.stats));
+  const scale = Math.max(maxStat, 50);
+
+  let html = '<div class="sec-title">ATTRIBUTES</div>';
+  ['STR','VIT','AGI','INT','CHA'].forEach(key => {
+    const val = S.stats[key] || 0;
+    const cls = STAT_CLS[key];
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--' + cls).trim();
+    const pct = scale > 0 ? Math.min(100, val / scale * 100) : 0;
+    html += `<div class="stat-row">
+      <div class="stat-label" style="color:${color}">${key}</div>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${color},${color}cc);box-shadow:0 0 6px ${color}40"></div></div>
+      <div class="stat-val">${val}</div>
+    </div>`;
+  });
+
+  // Summary grid
+  html += '<div class="sec-title">SUMMARY</div>';
+  html += `<div class="summary">
+    <div class="sum-item"><div class="sum-val">${S.total_xp}</div><div class="sum-lbl">Total XP</div></div>
+    <div class="sum-item"><div class="sum-val">${S.level}</div><div class="sum-lbl">Level</div></div>
+    <div class="sum-item"><div class="sum-val">${S.day_streak || 0}</div><div class="sum-lbl">Day Streak</div></div>
+    <div class="sum-item"><div class="sum-val">${S.boss_kills || 0}</div><div class="sum-lbl">Bosses Slain</div></div>
+    <div class="sum-item"><div class="sum-val">${S.total_workouts || 0}</div><div class="sum-lbl">Workouts</div></div>
+    <div class="sum-item"><div class="sum-val">${S.completed_today.length}/${S.daily_quests.length}</div><div class="sum-lbl">Today</div></div>
+  </div>`;
+
+  // Achievements
+  html += '<div class="sec-title">ACHIEVEMENTS</div>';
+  S.achievements.forEach(a => {
+    const icon = a.unlocked ? '\u{1F3C6}' : '\u{1F512}';
+    html += `<div class="ach ${a.unlocked ? '' : 'locked'}">
+      <div class="ach-icon">${icon}</div>
+      <div class="ach-body">
+        <div class="ach-name">${a.name}</div>
+        <div class="ach-desc">${a.desc}</div>
+      </div>
+      <div class="ach-status ${a.unlocked ? 'unlocked' : 'locked-text'}">${a.unlocked ? 'UNLOCKED' : 'LOCKED'}</div>
+    </div>`;
+  });
+
+  c.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const renderers = { quests: renderQuests, train: renderTrain, timers: renderTimers, stats: renderStats };
+  if (renderers[tab]) renderers[tab]();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TICK (runs every second for timers, every minute for auto-fail)
+// ═══════════════════════════════════════════════════════════════
+let lastFailCheck = 0;
+function tick() {
+  // Update timer display if on timers tab
+  if (activeTab === 'timers') renderTimers();
+
+  // Auto-fail check every 60s
+  const now = Date.now();
+  if (now - lastFailCheck > 60000) {
+    lastFailCheck = now;
+    processAutoFails();
+  }
+
+  // Check for day change
+  const today = todayIST();
+  if (S.as_of !== today) {
+    S = newDay(S, today);
+    save();
+    renderHeader();
+    switchTab(activeTab);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WEEKLY RAID BOSS
+// ═══════════════════════════════════════════════════════════════
+const WEEKLY_BOSS = {name:"Shadow Monarch", max_hp:600, reward_xp:500};
+
+function getWeekId() {
+  // ISO week starting Monday
+  const d = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const yearStart = new Date(d.getFullYear(),0,1);
+  return d.getFullYear() + '-W' + String(Math.ceil((((d-yearStart)/86400000)+1)/7)).padStart(2,'0');
+}
+
+function initWeeklyBoss() {
+  const wk = getWeekId();
+  if (!S.weekly_boss) S.weekly_boss = {};
+  if (S.weekly_boss.week !== wk) {
+    S.weekly_boss = {week: wk, hp: WEEKLY_BOSS.max_hp, defeated: false, total_dmg: 0};
+  }
+}
+
+function damageWeeklyBoss(dmg) {
+  if (!S.weekly_boss || S.weekly_boss.defeated) return;
+  S.weekly_boss.hp = Math.max(0, S.weekly_boss.hp - dmg);
+  S.weekly_boss.total_dmg = (S.weekly_boss.total_dmg||0) + dmg;
+  if (S.weekly_boss.hp <= 0 && !S.weekly_boss.defeated) {
+    S.weekly_boss.defeated = true;
+    S.total_xp += WEEKLY_BOSS.reward_xp;
+    recomputeLevel(); recomputeRank();
+    toast(`WEEKLY BOSS DEFEATED! +${WEEKLY_BOSS.reward_xp} XP`, 'rank');
+  }
+}
+
+function renderWeeklyBoss() {
+  const wb = S.weekly_boss || {hp:WEEKLY_BOSS.max_hp, defeated:false};
+  const pct = WEEKLY_BOSS.max_hp > 0 ? (wb.hp / WEEKLY_BOSS.max_hp * 100) : 0;
+  document.getElementById('wboss-bar').style.width = pct + '%';
+  document.getElementById('wboss-nums').textContent = wb.defeated ? 'DEFEATED' : `${wb.hp} / ${WEEKLY_BOSS.max_hp}`;
+  document.getElementById('wboss-name').textContent = wb.defeated
+    ? '☠ WEEKLY: ' + WEEKLY_BOSS.name.toUpperCase()
+    : '⚔ WEEKLY: ' + WEEKLY_BOSS.name.toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WEATHER QUESTS (Open-Meteo, Pune)
+// ═══════════════════════════════════════════════════════════════
+const WEATHER_QUESTS = [
+  {condition:'rain', icon:'\u{1F327}\u{FE0F}', name:'Train in the Rain', desc:'Exercise during rain for bonus XP', xp:25, stat:'STR', mult:1.5},
+  {condition:'clear', icon:'\u{2600}\u{FE0F}', name:'Sun Salutation', desc:'Morning stretch under clear sky', xp:15, stat:'AGI', mult:1.3},
+  {condition:'hot', icon:'\u{1F525}', name:'Heat Endurance', desc:'Stay active above 35°C', xp:20, stat:'VIT', mult:1.4},
+  {condition:'cold', icon:'\u{2744}\u{FE0F}', name:'Cold Warrior', desc:'Train when temp below 15°C', xp:20, stat:'STR', mult:1.4},
+  {condition:'cloudy', icon:'\u{2601}\u{FE0F}', name:'Shadow Training', desc:'Train under cloud cover', xp:15, stat:'AGI', mult:1.2}
+];
+
+const WMO_MAP = {0:'clear',1:'clear',2:'cloudy',3:'cloudy',45:'fog',48:'fog',
+  51:'rain',53:'rain',55:'rain',61:'rain',63:'rain',65:'rain',
+  71:'snow',73:'snow',75:'snow',80:'rain',81:'rain',82:'rain',95:'storm'};
+
+async function fetchWeather() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=18.52&longitude=73.86&current_weather=true');
+    const d = await r.json();
+    const cw = d.current_weather;
+    S.weather = {temp: cw.temperature, code: cw.weathercode, wind: cw.windspeed, fetched: Date.now()};
+    save();
+    renderWeather();
+  } catch(e) { console.log('Weather fetch failed:', e); }
+}
+
+function renderWeather() {
+  const w = S.weather;
+  if (!w) return;
+  const condition = WMO_MAP[w.code] || 'clear';
+  const isHot = w.temp >= 35;
+  const isCold = w.temp <= 15;
+  let activeQuest = WEATHER_QUESTS.find(q => q.condition === condition);
+  if (isHot) activeQuest = WEATHER_QUESTS.find(q => q.condition === 'hot');
+  if (isCold) activeQuest = WEATHER_QUESTS.find(q => q.condition === 'cold');
+
+  if (activeQuest) {
+    S.active_weather_quest = activeQuest;
+    const banner = document.getElementById('weather-banner');
+    banner.style.display = 'flex';
+    document.getElementById('w-icon').textContent = activeQuest.icon;
+    document.getElementById('w-text').textContent = `${w.temp}°C \u{00B7} ${condition}`;
+    document.getElementById('w-quest').textContent = `${activeQuest.name} +${activeQuest.xp}XP`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUEST CHAINS (multi-day)
+// ═══════════════════════════════════════════════════════════════
+const QUEST_CHAINS = [
+  {id:'wake7', name:'Early Riser Protocol', desc:'Wake before deadline 7 days straight',
+   icon:'\u{23F0}', quest_id:'wake', days:7, reward_xp:150, reward_stat:'INT'},
+  {id:'hydra7', name:'Hydration Mastery', desc:'Complete all water quests for 7 days',
+   icon:'\u{1F4A7}', quest_ids:['mw1','w2','w3','w4'], days:7, reward_xp:200, reward_stat:'VIT'},
+  {id:'iron5', name:'Iron Body', desc:'Complete a workout 5 days straight',
+   icon:'\u{1F4AA}', workout:true, days:5, reward_xp:250, reward_stat:'STR'},
+  {id:'monk3', name:'Monk Mode', desc:'No junk food for 3 days straight',
+   icon:'\u{1F6E1}\u{FE0F}', quest_id:'nojunk', days:3, reward_xp:100, reward_stat:'CHA'},
+  {id:'scholar7', name:"Scholar's Path", desc:'Learn something 7 days straight',
+   icon:'\u{1F4D6}', quest_id:'learn', days:7, reward_xp:150, reward_stat:'INT'},
+  {id:'clean5', name:'Order of the Clean', desc:'Clean your space 5 days straight',
+   icon:'\u{1F9F9}', quest_id:'clean', days:5, reward_xp:100, reward_stat:'CHA'}
+];
+
+function initChains() {
+  if (!S.chains) S.chains = {};
+  QUEST_CHAINS.forEach(ch => {
+    if (!S.chains[ch.id]) S.chains[ch.id] = {progress:0, last_date:null, completed:false};
+  });
+}
+
+function updateChains() {
+  const today = todayIST();
+  QUEST_CHAINS.forEach(ch => {
+    const cs = S.chains[ch.id];
+    if (cs.completed) return;
+    // Check if relevant quest(s) were completed today
+    let done = false;
+    if (ch.workout) {
+      done = (S.workouts_today||[]).length > 0;
+    } else if (ch.quest_ids) {
+      done = ch.quest_ids.every(id => S.completed_today.includes(id));
+    } else if (ch.quest_id) {
+      done = S.completed_today.includes(ch.quest_id);
+    }
+    if (done && cs.last_date !== today) {
+      // Check if consecutive (last_date was yesterday)
+      const yesterday = new Date(new Date(today).getTime() - 86400000).toISOString().slice(0,10);
+      if (cs.last_date === yesterday || cs.progress === 0) {
+        cs.progress++;
+        cs.last_date = today;
+      } else if (cs.last_date !== today) {
+        cs.progress = 1; // streak broken, restart
+        cs.last_date = today;
+      }
+      // Check completion
+      if (cs.progress >= ch.days) {
+        cs.completed = true;
+        S.total_xp += ch.reward_xp;
+        S.stats[ch.reward_stat] = (S.stats[ch.reward_stat]||0) + ch.reward_xp;
+        recomputeLevel(); recomputeRank();
+        toast(`CHAIN COMPLETE: ${ch.name} +${ch.reward_xp} XP`, 'rank');
+      }
+    }
+  });
+  save();
+}
+
+function renderChains(container) {
+  let html = '<div class="sec-title">QUEST CHAINS</div>';
+  QUEST_CHAINS.forEach(ch => {
+    const cs = S.chains?.[ch.id] || {progress:0, completed:false};
+    const pct = ch.days > 0 ? Math.min(100, cs.progress / ch.days * 100) : 0;
+    html += `<div class="chain-item">
+      <div class="chain-header">
+        <span class="chain-name">${ch.icon} ${ch.name}</span>
+        <span class="chain-progress">${cs.completed ? '\u{2713} DONE' : cs.progress + '/' + ch.days}</span>
+      </div>
+      <div class="chain-desc">${ch.desc}</div>
+      <div class="chain-step ${cs.completed ? '' : 'active'}">Reward: +${ch.reward_xp} XP [${ch.reward_stat}]</div>
+      <div class="chain-bar"><div class="chain-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RANDOM EVENTS
+// ═══════════════════════════════════════════════════════════════
+const RANDOM_EVENTS = [
+  {id:'shadow_dungeon',icon:'\u{1F3F0}',title:'SHADOW DUNGEON',desc:'A gate has appeared! Complete 3 quests in the next 2 hours for +50 bonus XP.',weight:10,type:'timed_challenge',bonus_xp:50,required:3,duration_h:2},
+  {id:'double_xp',icon:'\u{26A1}',title:'DOUBLE XP SURGE',desc:'A surge of power! All quests award double XP for the next hour.',weight:8,type:'multiplier',mult:2,duration_h:1},
+  {id:'merchant',icon:'\u{1F9D9}',title:'WANDERING MERCHANT',desc:'A mysterious figure offers you a deal: complete any workout for triple XP reward.',weight:8,type:'workout_mult',mult:3,duration_h:3},
+  {id:'healing_spring',icon:'\u{1F49A}',title:'HEALING SPRING',desc:'A hidden spring restores your vitality. HP fully restored!',weight:12,type:'heal'},
+  {id:'mana_well',icon:'\u{1F49C}',title:'MANA WELL',desc:'An ancient well pulses with energy. MP fully restored!',weight:12,type:'mp_restore'},
+  {id:'stat_crystal',icon:'\u{1F48E}',title:'STAT CRYSTAL',desc:'A glowing crystal grants +10 to your lowest stat.',weight:6,type:'stat_boost',amount:10},
+  {id:'exp_tome',icon:'\u{1F4D5}',title:'TOME OF EXPERIENCE',desc:'An ancient tome grants 30 bonus XP!',weight:15,type:'xp_grant',xp:30},
+  {id:'boss_rage',icon:'\u{1F608}',title:'BOSS ENRAGE',desc:'The Void Sentinel grows stronger! Boss gains +30 HP today, but defeat reward doubles.',weight:5,type:'boss_buff',hp_add:30,reward_mult:2},
+  {id:'shadow_army',icon:'\u{1F465}',title:'SHADOW ARMY',desc:'Shadows fight alongside you. All quest penalties halved today.',weight:8,type:'penalty_reduce',mult:0.5},
+  {id:'mystery_quest',icon:'\u{2753}',title:'MYSTERY QUEST',desc:'Complete any 5 quests today and receive 40 bonus XP.',weight:10,type:'threshold_bonus',threshold:5,bonus_xp:40},
+  {id:'critical_hit',icon:'\u{1F4A5}',title:'CRITICAL HIT AURA',desc:'Your next completed quest deals 3x damage to the boss.',weight:8,type:'crit_next',mult:3},
+  {id:'rest_day',icon:'\u{1F3D6}\u{FE0F}',title:'REST DAY DECREE',desc:'The system grants mercy. No HP penalties for missed quests today.',weight:6,type:'no_penalty'}
+];
+
+function rollEvent() {
+  const today = todayIST();
+  if (S.event_date === today) return; // Already rolled today
+  S.event_date = today;
+
+  const totalWeight = RANDOM_EVENTS.reduce((a,e) => a + e.weight, 0);
+  let roll = Math.random() * totalWeight;
+  let event = RANDOM_EVENTS[0];
+  for (const e of RANDOM_EVENTS) {
+    roll -= e.weight;
+    if (roll <= 0) { event = e; break; }
+  }
+  S.today_event = {id: event.id, activated: false, expires: null};
+  save();
+  showEvent(event);
+}
+
+function showEvent(event) {
+  const overlay = document.getElementById('event-overlay');
+  document.getElementById('ev-icon').textContent = event.icon;
+  document.getElementById('ev-title').textContent = event.title;
+  document.getElementById('ev-desc').textContent = event.desc;
+  overlay.style.display = 'flex';
+  document.getElementById('ev-btn').onclick = () => {
+    activateEvent(event);
+    overlay.style.display = 'none';
+  };
+}
+
+function activateEvent(event) {
+  S.today_event.activated = true;
+  const now = Date.now();
+  switch(event.type) {
+    case 'heal': S.hp = S.max_hp; toast('HP fully restored!', 'xp'); break;
+    case 'mp_restore': S.mp = S.max_mp; toast('MP fully restored!', 'xp'); break;
+    case 'xp_grant':
+      S.total_xp += event.xp; recomputeLevel(); recomputeRank();
+      toast(`+${event.xp} bonus XP!`, 'xp'); break;
+    case 'stat_boost':
+      const lowest = Object.entries(S.stats).sort((a,b)=>a[1]-b[1])[0][0];
+      S.stats[lowest] += event.amount;
+      toast(`+${event.amount} ${lowest}!`, 'xp'); break;
+    case 'multiplier': S.today_event.xp_mult = event.mult; S.today_event.expires = now + event.duration_h*3600000; break;
+    case 'workout_mult': S.today_event.workout_mult = event.mult; S.today_event.expires = now + event.duration_h*3600000; break;
+    case 'timed_challenge': S.today_event.challenge = {required:event.required, bonus:event.bonus_xp, expires:now+event.duration_h*3600000, start_count:S.completed_today.length}; break;
+    case 'boss_buff':
+      S.boss_hp = Math.min(S.boss_hp + event.hp_add, S.daily_boss.max_hp + event.hp_add);
+      S.today_event.boss_reward_mult = event.reward_mult; break;
+    case 'penalty_reduce': S.today_event.penalty_mult = event.mult; break;
+    case 'threshold_bonus': S.today_event.threshold = {count:event.threshold, bonus:event.bonus_xp, claimed:false}; break;
+    case 'crit_next': S.today_event.crit_next = event.mult; break;
+    case 'no_penalty': S.today_event.no_penalty = true; break;
+  }
+  save(); renderHeader();
+}
+
+function getXpMultiplier() {
+  if (S.today_event?.xp_mult && S.today_event.expires > Date.now()) return S.today_event.xp_mult;
+  return 1;
+}
+
+function getWorkoutMultiplier() {
+  if (S.today_event?.workout_mult && S.today_event.expires > Date.now()) return S.today_event.workout_mult;
+  return 1;
+}
+
+function checkEventThreshold() {
+  const t = S.today_event?.threshold;
+  if (t && !t.claimed && S.completed_today.length >= t.count) {
+    t.claimed = true;
+    S.total_xp += t.bonus;
+    recomputeLevel(); recomputeRank();
+    toast(`Mystery Quest complete! +${t.bonus} XP`, 'lvl');
+    save();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PATCH: integrate new mechanics into existing quest/workout completion
+// ═══════════════════════════════════════════════════════════════
+const _origCompleteQuest = completeQuest;
+completeQuest = function(id) {
+  const q = S.daily_quests.find(x => x.id === id);
+  if (!q || S.completed_today.includes(id) || S.failed_today.includes(id)) return;
+  const h = hourIST();
+  if (h < q.from || h >= q.to) return;
+
+  let xpMult = getXpMultiplier();
+  // Crit next
+  if (S.today_event?.crit_next) { xpMult *= S.today_event.crit_next; delete S.today_event.crit_next; }
+  // Weather bonus
+  const wq = S.active_weather_quest;
+  if (wq && ['STR','AGI'].includes(q.stat)) xpMult *= (wq.mult || 1);
+
+  const xp = Math.round(q.xp * xpMult);
+  S.total_xp += xp;
+  S.stats[q.stat] = (S.stats[q.stat]||0) + xp;
+  S.mp = Math.min(S.max_mp, S.mp + Math.floor(xp/3));
+  S.completed_today.push(id);
+
+  // Boss damage
+  S.boss_hp = Math.max(0, S.boss_hp - xp);
+  if (S.boss_hp <= 0 && !S.boss_defeated_today) {
+    S.boss_defeated_today = true;
+    const bReward = Math.round(S.daily_boss.reward_xp * (S.today_event?.boss_reward_mult || 1));
+    S.total_xp += bReward;
+    S.boss_kills = (S.boss_kills||0) + 1;
+    toast(`BOSS DEFEATED! +${bReward} XP`, 'boss');
+  }
+  // Weekly boss damage
+  damageWeeklyBoss(xp);
+
+  recomputeLevel(); recomputeRank(); checkAchievements();
+  updateChains(); checkEventThreshold();
+  save();
+  toast(`+${xp} XP  [${q.stat}]${xpMult>1?' ('+xpMult.toFixed(1)+'x)':''}`, 'xp');
+  renderHeader(); renderWeeklyBoss();
+  if (activeTab === 'quests') renderQuests();
+};
+
+const _origCompleteWorkout = completeWorkout;
+completeWorkout = function(id) {
+  if ((S.workouts_today||[]).includes(id)) return;
+  const w = S.workout_quests.find(x => x.id === id);
+  if (!w) return;
+  if (RANK_ORDER.indexOf(w.tier) > RANK_ORDER.indexOf(S.rank)) return;
+
+  let xpMult = getWorkoutMultiplier();
+  const xp = Math.round(w.xp * xpMult);
+  S.total_xp += xp;
+  S.stats[w.stat] = (S.stats[w.stat]||0) + xp;
+  S.mp = Math.min(S.max_mp, S.mp + Math.floor(xp/3));
+  S.total_workouts = (S.total_workouts||0) + 1;
+  if (!S.workouts_today) S.workouts_today = [];
+  S.workouts_today.push(id);
+
+  S.boss_hp = Math.max(0, S.boss_hp - xp);
+  if (S.boss_hp <= 0 && !S.boss_defeated_today) {
+    S.boss_defeated_today = true;
+    S.total_xp += S.daily_boss.reward_xp;
+    S.boss_kills = (S.boss_kills||0) + 1;
+    toast(`BOSS DEFEATED! +${S.daily_boss.reward_xp} XP`, 'boss');
+  }
+  damageWeeklyBoss(xp);
+
+  recomputeLevel(); recomputeRank(); checkAchievements();
+  updateChains();
+  save();
+  toast(`+${xp} XP  [${w.stat}]${xpMult>1?' ('+xpMult.toFixed(1)+'x)':''}`, 'xp');
+  renderHeader(); renderWeeklyBoss();
+  if (activeTab === 'train') renderTrain();
+};
+
+// Patch auto-fail for no_penalty event
+const _origProcessAutoFails = processAutoFails;
+processAutoFails = function() {
+  if (S.today_event?.no_penalty) return; // No penalties today
+  const penMult = S.today_event?.penalty_mult || 1;
+  const h = hourIST();
+  let changed = false;
+  S.daily_quests.forEach(q => {
+    if (h >= q.to && !S.completed_today.includes(q.id) && !S.failed_today.includes(q.id)) {
+      S.failed_today.push(q.id);
+      S.hp = Math.max(0, S.hp - Math.round(q.pen * penMult));
+      changed = true;
+    }
+  });
+  if (changed) { save(); renderHeader(); if (activeTab === 'quests') renderQuests(); }
+};
+
+// Patch renderStats to include chains
+const _origRenderStats = renderStats;
+renderStats = function() {
+  _origRenderStats();
+  const c = document.getElementById('content');
+  c.innerHTML += renderChains(c);
+};
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+S = loadState();
+initWeeklyBoss();
+initChains();
+renderHeader();
+renderWeeklyBoss();
+switchTab('quests');
+processAutoFails();
+save();
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchTab(t.dataset.tab));
+});
+
+timerInterval = setInterval(tick, 1000);
+
+document.getElementById('ftr-time').textContent =
+  new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata', dateStyle:'medium', timeStyle:'short'});
+
+setInterval(() => {
+  document.getElementById('ftr-time').textContent =
+    new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata', dateStyle:'medium', timeStyle:'short'});
+}, 60000);
+
+// Fetch weather and roll daily event after render
+fetchWeather();
+rollEvent();
+
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(r => console.log('SW registered:', r.scope)).catch(e => console.log('SW error:', e));
+}
+// v2.1 — weekly boss, weather quests, chains, events
+</script>
+</body>
+</html>

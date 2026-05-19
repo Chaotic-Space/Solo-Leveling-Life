@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cowork Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@300;400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#faf9f5;--bg-card:#fff;--text:#1a1a1a;--dim:#666;--muted:#999;
+      --accent:#D97757;--border:#e5e4df;--red:#ef4444;--green:#16a34a;
+      --tab-bg:#f0efeb;--tab-active:#1a1a1a;--tab-text:#888;
+    }
+    .dark{
+      --bg:#0a0a12;--bg-card:#10101c;--text:#c8c8e0;--dim:#6a6a8a;--muted:#4a4a6a;
+      --accent:#5b7fff;--border:#2a2a45;--red:#ef4444;--green:#4ade80;
+      --tab-bg:#161625;--tab-active:#e8e8ff;--tab-text:#6a6a8a;
+    }
+    body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:0;line-height:1.5;transition:background .3s,color .3s;min-height:100vh}
+    header{display:flex;justify-content:space-between;align-items:center;padding:18px 28px 14px;border-bottom:2px solid var(--border)}
+    header h1{font-size:20px;font-weight:600;letter-spacing:.3px}
+    .dark header h1{font-family:'Orbitron',monospace;font-size:16px;letter-spacing:2px;color:#e8e8ff}
+    .meta{font-size:12px;color:var(--muted)}.meta a{color:var(--accent);text-decoration:none}.meta a:hover{text-decoration:underline}
+    .tab-bar{display:flex;background:var(--tab-bg);border-bottom:1px solid var(--border);padding:0 28px;transition:background .3s}
+    .tab-btn{padding:12px 24px;font-size:13px;font-weight:600;letter-spacing:.5px;color:var(--tab-text);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color .2s,border-color .2s}
+    .tab-btn.active{color:var(--tab-active);border-bottom-color:var(--accent)}.tab-btn:hover{color:var(--tab-active)}
+    .dark .tab-btn{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+    .tc{display:none;padding:20px 28px 40px;animation:fadeIn .25s ease}.tc.active{display:block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+    .tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    .tile{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:18px;transition:background .3s,border-color .3s}
+    .tile.s2{grid-column:span 2}.tile.full{grid-column:1/-1}
+    .tile h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px}
+    .dark .tile h2{font-family:'Orbitron',monospace;letter-spacing:2px;font-size:10px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--border)}
+    td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}tr:last-child td{border-bottom:none}
+    .pri{display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px}
+    .pri.p0{background:#fef2f2;color:var(--red)}.pri.p1{background:#fefce8;color:#a16207}.pri.p2{background:#f0f9ff;color:#0369a1}
+    .dark .pri.p0{background:#ef444420;color:#f87171}.dark .pri.p1{background:#f59e0b20;color:#fbbf24}.dark .pri.p2{background:#60a5fa20;color:#93c5fd}
+    .sha{font-family:Consolas,monospace;font-size:12px;color:var(--accent)}.time-ago{font-size:11px;color:var(--muted)}
+    .blocker{font-size:12px;color:var(--red);font-weight:500}.no-blocker{font-size:12px;color:var(--muted)}
+    .cap-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;min-height:40px}
+    .cap-item:last-child{border-bottom:none}.cap-topic{font-weight:500}.cap-tags{font-size:11px;color:var(--muted)}
+    .pc{position:relative;overflow:hidden}
+    .pc::after{content:'';position:absolute;top:0;right:0;width:100px;height:100px;background:radial-gradient(circle at top right,#5b7fff30,transparent 70%);pointer-events:none}
+    .p-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+    .p-name{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:#e8e8ff}
+    .p-sub{font-size:12px;color:var(--dim);margin-top:2px}
+    .rb{font-family:'Orbitron',monospace;font-size:24px;font-weight:900;padding:3px 12px;border-radius:5px;border:2px solid;line-height:1;text-shadow:0 0 10px currentColor}
+    .br{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+    .bl{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;width:20px;color:var(--dim)}
+    .bt{flex:1;height:5px;background:#1c1c30;border-radius:3px;overflow:hidden}
+    .bf{height:100%;border-radius:3px;transition:width .4s}
+    .bf.hp{background:linear-gradient(90deg,#16a34a,#22c55e)}.bf.mp{background:linear-gradient(90deg,#7c3aed,#8b5cf6)}
+    .bf.xp{background:linear-gradient(90deg,#5b7fff,#8ba4ff);box-shadow:0 0 6px #5b7fff40}.bf.bo{background:linear-gradient(90deg,#dc2626,#ef4444)}
+    .bn{font-family:'Barlow Condensed',monospace;font-size:11px;color:var(--dim);width:64px;text-align:right}
+    .bossrow{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+    .bossn{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;color:#ef4444;white-space:nowrap}
+    .sm{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:12px}
+    .sm div{display:flex;justify-content:space-between}
+    .sm .sl{font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:1px}
+    .sm .sv{font-family:'Barlow Condensed',monospace;font-size:13px;font-weight:600;color:var(--dim)}
+    .qr{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .qr:last-child{border-bottom:none}.ql{font-weight:500}
+    .qv{font-family:'Barlow Condensed',monospace;font-size:14px;font-weight:600}
+    .sr{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;min-height:36px}
+    .sr:last-child{border-bottom:none}
+    .lr{margin-top:10px;text-align:right}.lr a{font-size:11px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}.lr a:hover{text-decoration:underline}
+    footer{padding:16px 28px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:right}
+  </style>
+</head>
+<body>
+<header>
+  <h1 id="hdr-t">Cowork Dashboard</h1>
+  <div class="meta"><span id="hdr-d"></span> &middot; <a id="brief-link" href="#">Today's brief</a></div>
+</header>
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="personal">Personal</button>
+  <button class="tab-btn" data-tab="work">Work</button>
+</div>
+
+<!-- PERSONAL TAB -->
+<div class="tc active" id="tab-personal">
+<div class="tiles">
+  <div class="tile s2 pc">
+    <h2>Hunter Status</h2>
+    <div class="p-top">
+      <div><div class="p-name" id="dn">AKASH</div><div class="p-sub" id="dt">E-Rank Hunter</div></div>
+      <div class="rb" id="dr" style="color:#7a7a7a;border-color:#7a7a7a">E</div>
+    </div>
+    <div class="br"><span class="bl">HP</span><div class="bt"><div class="bf hp" id="dhp" style="width:100%"></div></div><span class="bn" id="dhpn">105/105</span></div>
+    <div class="br"><span class="bl">MP</span><div class="bt"><div class="bf mp" id="dmp" style="width:100%"></div></div><span class="bn" id="dmpn">50/50</span></div>
+    <div class="br"><span class="bl">XP</span><div class="bt"><div class="bf xp" id="dxp" style="width:0%"></div></div><span class="bn" id="dxpn">0/100</span></div>
+    <div class="bossrow"><span class="bossn" id="dbn">⚔ VOID SENTINEL</span><div class="bt" style="flex:1"><div class="bf bo" id="dbb" style="width:100%"></div></div><span class="bn" id="dbbn">120/120</span></div>
+    <div class="lr"><a href="status-window.html">Full Status Window &rarr;</a></div>
+  </div>
+  <div class="tile">
+    <h2>Attributes</h2>
+    <div class="sm" id="dstats"></div>
+    <div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--dim)">Level</span><span style="font-family:'Barlow Condensed',monospace;font-weight:600" id="dlvl">1</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:2px"><span style="color:var(--dim)">Total XP</span><span style="font-family:'Barlow Condensed',monospace;font-weight:600" id="dtxp">0</span></div>
+    </div>
+  </div>
+  <div class="tile s2">
+    <h2>Today's Quests</h2>
+    <div id="dqp"></div>
+    <div class="lr"><a href="status-window.html">Complete Quests &rarr;</a></div>
+  </div>
+  <div class="tile">
+    <h2>Streaks</h2>
+    <div id="dstr"></div>
+  </div>
+</div>
+</div>
+
+<!-- WORK TAB -->
+<div class="tc" id="tab-work">
+<div class="tiles">
+  <div class="tile full">
+    <h2>Projects</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Priority</th><th>Last Commit</th><th>Open</th><th>Blocker</th></tr></thead>
+      <tbody>
+        <tr><td><strong>gauging-pyside6</strong></td><td><span class="pri p0">P0</span></td><td><span class="sha">f32cfb6</span> Merge PR #56<br><span class="time-ago">7d ago</span></td><td>0i/0pr</td><td><span class="no-blocker">&mdash;</span></td></tr>
+        <tr><td><strong>fanuc-auto-offset</strong></td><td><span class="pri p0">P0</span></td><td><span class="time-ago">no repo</span></td><td>0i/0pr</td><td><span class="blocker">RS-232 frame loss</span></td></tr>
+        <tr><td><strong>manufacturing-erp</strong></td><td><span class="pri p1">P1</span></td><td><span class="sha">949c711</span> Merge PR #67<br><span class="time-ago">2d ago</span></td><td>0i/0pr</td><td><span class="no-blocker">&mdash;</span></td></tr>
+        <tr><td><strong>wpf-gauging</strong></td><td><span class="pri p1">P1</span></td><td><span class="sha">af8c4ff</span> Initial commit<br><span class="time-ago">57d ago</span></td><td>0i/0pr</td><td><span class="no-blocker">&mdash;</span></td></tr>
+        <tr><td><strong>size-control-iot</strong></td><td><span class="pri p2">P2</span></td><td><span class="time-ago">no repo</span></td><td>0i/0pr</td><td><span class="blocker">client sign-off</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tile s2">
+    <h2>Recent Captures</h2>
+    <div>
+      <div class="cap-item"><span class="cap-topic">Gauging app domain</span><span class="cap-tags">skill import</span></div>
+      <div class="cap-item"><span class="cap-topic">QC business logic</span><span class="cap-tags">skill import</span></div>
+      <div class="cap-item"><span class="cap-topic">WPF / .NET 8 patterns</span><span class="cap-tags">skill import</span></div>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--muted)">3 entries &middot; 3 skill imports</div>
+  </div>
+  <div class="tile">
+    <h2>Quick Stats</h2>
+    <div style="font-size:13px">
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Active projects</span><strong>5</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Blockers</span><strong style="color:var(--red)">2</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0"><span>Memory entries</span><strong>3</strong></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer><span id="ftr"></span></footer>
+
+<script>
+const RC={E:"#7a7a7a",D:"#4ade80",C:"#60a5fa",B:"#c084fc",A:"#f59e0b",S:"#ef4444"};
+const SC={STR:"#ef4444",VIT:"#22c55e",AGI:"#f59e0b",INT:"#8b5cf6",CHA:"#ec4899"};
+const SK='sl_player_v2';
+
+function switchTab(n){
+  document.querySelectorAll('.tab-btn').forEach(t=>t.classList.toggle('active',t.dataset.tab===n));
+  document.querySelectorAll('.tc').forEach(p=>p.classList.toggle('active',p.id==='tab-'+n));
+  if(n==='personal'){document.body.classList.add('dark');document.getElementById('hdr-t').textContent='Status Window'}
+  else{document.body.classList.remove('dark');document.getElementById('hdr-t').textContent='Cowork Dashboard'}
+}
+document.querySelectorAll('.tab-btn').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+
+function loadP(){
+  try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r)}catch(e){}
+  return{name:"AKASH",total_xp:0,level:1,rank:"E",title:"E-Rank Hunter",
+    hp:105,max_hp:105,mp:50,max_mp:50,stats:{STR:0,VIT:0,AGI:0,INT:0,CHA:0},
+    leveling_curve:[0,100,250,500,850,1300,1900,2600,3500,4600,5900,7500,9400,11600,14200,17200,20700,24700,29300,34500,40500],
+    rank_colors:RC,daily_quests:new Array(24),
+    daily_boss:{name:"Void Sentinel",max_hp:120,reward_xp:200},
+    completed_today:[],failed_today:[],boss_hp:120,boss_defeated_today:false,
+    day_streak:0,boss_kills:0,total_workouts:0,workouts_today:[]};
+}
+
+function renderPersonal(){
+  const P=loadP(),rc=(P.rank_colors||RC)[P.rank]||'#7a7a7a';
+  document.getElementById('dn').textContent=P.name;
+  document.getElementById('dt').textContent=P.title;
+  const b=document.getElementById('dr');b.textContent=P.rank;b.style.color=rc;b.style.borderColor=rc;b.style.textShadow='0 0 10px '+rc;
+
+  const hpP=P.max_hp>0?(P.hp/P.max_hp*100):0;
+  document.getElementById('dhp').style.width=hpP+'%';
+  document.getElementById('dhpn').textContent=P.hp+'/'+P.max_hp;
+  const mpP=P.max_mp>0?(P.mp/P.max_mp*100):0;
+  document.getElementById('dmp').style.width=mpP+'%';
+  document.getElementById('dmpn').textContent=P.mp+'/'+P.max_mp;
+
+  const c=P.leveling_curve||[0,100];
+  const base=c[P.level-1]||0,next=P.level<c.length?c[P.level]:base;
+  const xI=P.total_xp-base,xN=next-base;
+  document.getElementById('dxp').style.width=(xN>0?Math.min(100,xI/xN*100):100)+'%';
+  document.getElementById('dxpn').textContent=xI+'/'+xN;
+
+  const bM=P.daily_boss?.max_hp||120,bH=P.boss_hp??bM;
+  document.getElementById('dbb').style.width=(bM>0?(bH/bM*100):0)+'%';
+  document.getElementById('dbbn').textContent=P.boss_defeated_today?'DEFEATED':bH+'/'+bM;
+  document.getElementById('dbn').textContent=P.boss_defeated_today?'☠ '+(P.daily_boss?.name||'Void Sentinel').toUpperCase():'⚔ '+(P.daily_boss?.name||'Void Sentinel').toUpperCase();
+
+  document.getElementById('dstats').innerHTML=['STR','VIT','AGI','INT','CHA'].map(k=>
+    '<div><span class="sl" style="color:'+SC[k]+'">'+k+'</span><span class="sv">'+(P.stats?.[k]||0)+'</span></div>').join('');
+  document.getElementById('dlvl').textContent=P.level;
+  document.getElementById('dtxp').textContent=P.total_xp;
+
+  const tQ=(P.daily_quests||[]).length||24,dQ=(P.completed_today||[]).length,fQ=(P.failed_today||[]).length;
+  document.getElementById('dqp').innerHTML=
+    '<div class="qr"><span class="ql">Completed</span><span class="qv" style="color:#22c55e">'+dQ+'/'+tQ+'</span></div>'+
+    '<div class="qr"><span class="ql">Active</span><span class="qv" style="color:#5b7fff">'+Math.max(0,tQ-dQ-fQ)+'</span></div>'+
+    '<div class="qr"><span class="ql">Missed</span><span class="qv" style="color:'+(fQ>0?'#ef4444':'var(--dim)')+'">'+fQ+'</span></div>'+
+    '<div class="qr"><span class="ql">Workouts</span><span class="qv">'+(P.workouts_today||[]).length+'</span></div>';
+
+  const st=P.day_streak||0,bk=P.boss_kills||0,tw=P.total_workouts||0;
+  document.getElementById('dstr').innerHTML=
+    '<div class="sr"><span>Day Streak</span><span class="qv" style="color:'+(st>=7?'#ffd700':st>0?'var(--text)':'var(--dim)')+'">'+st+'d</span></div>'+
+    '<div class="sr"><span>Bosses Slain</span><span class="qv">'+bk+'</span></div>'+
+    '<div class="sr"><span>Total Workouts</span><span class="qv">'+tw+'</span></div>';
+}
+
+const today=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
+document.getElementById('hdr-d').textContent='IST';
+document.getElementById('ftr').textContent='Last rendered: '+new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'medium',timeStyle:'short'});
+document.getElementById('brief-link').href='briefs/brief-'+today+'.md';
+
+switchTab('personal');
+renderPersonal();
+setInterval(renderPersonal,30000);
+</script>
+</body>
+</html>
